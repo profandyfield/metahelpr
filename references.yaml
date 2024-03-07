@@ -1,0 +1,72 @@
+---
+references:
+- id: pearce2016
+  author:
+  - family: Pearce
+    given: Laura J.
+  - family: Field
+    given: Andy P.
+  container-title: Human Communication Research
+  DOI: "doi:10.1111/hcre.12069"
+  ISSN: 0360-3989
+  issued: 2016-01
+  key: VN9HT9Q9
+  libraryID: 1
+  page: 98-121
+  providerKey: 2509FBBE-5BB0-44C4-B119-6083A81ED673
+  rights: All rights reserved
+  title: "The impact of \"scary\" TV and film on children's internalizing
+    emotions: a meta-analysis"
+  type: article-journal
+  volume: 42
+- id: metafor
+  author:
+  - family: Viechtbauer
+    given: Wolfgang
+  DOI: 10.18637/jss.v036.i03
+  issued: 2010
+  page: 1\--48
+  providerKey: Packages
+  title: Conducting meta-analyses in {R} with the {metafor} package
+  type: article
+  volume: 36
+- id: brewin_meta-analysis_2024
+  author:
+    - family: Brewin
+      given: C. R.
+    - family: Field
+      given: Andy P.
+  citation-key: brewin_meta-analysis_2024
+  container-title: Clinical Psychological Science
+  issued:
+    - year: 2024
+  license: All rights reserved
+  title: >-
+    Meta-analysis shows trauma memories in PTSD lack coherence: a response to
+    Taylor et al. (2022)
+  type: article-journal
+- id: mathur2020
+  accessed: "15:42:28"
+  author:
+  - family: Mathur
+    given: Maya B.
+  - family: VanderWeele
+    given: Tyler J.
+  container-title: Epidemiology
+  DOI: 10.1097/EDE.0000000000001111
+  ISSN: 1044-3983
+  issue: 2
+  issued: 2020-03
+  key: EJCTGB47
+  language: en
+  libraryID: 1
+  page: e16-e17
+  providerKey: 2509FBBE-5BB0-44C4-B119-6083A81ED673
+  source: DOI.org (Crossref)
+  title: A simple, interpretable conversion from Pearson's correlation
+    to Cohen's \<em\>d\</em\> for continuous exposures
+  title-short: Re
+  type: article-journal
+  URL: "https://journals.lww.com/10.1097/EDE.0000000000001111"
+  volume: 31
+...

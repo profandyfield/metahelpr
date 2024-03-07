@@ -4,19 +4,17 @@
 \alias{var_d_from_r}
 \title{Estimate the sampling variance of Cohen's \emph{d} based on a correlation coefficient}
 \usage{
-var_d_from_r(n, r, d, biserial = T, var = T)
+var_d_from_r(n = NULL, r = NULL, d = NULL, var = T)
 }
 \arguments{
 \item{n}{the total sample size on which \emph{d} was based}
 
 \item{r}{The correlation coefficient on which \emph{d} was based}
 
-\item{d}{The estimate of \emph{d}}
+\item{d}{The estimate of \emph{d}. If \code{d = NULL} (the default) the variance us calculated assuming \emph{r} is a biserial correlation. If \code{d} is set to a value then the function
+treats the measures as continuous based on Mathur & VanderWeele (2019).}
 
-\item{biserial}{When \code{TRUE} the standard formula for converting a point biserial correlation is used, when \code{FALSE} the function
-treats the measures as continuous. In this case two options need to be set based on uses Mathur & VanderWeele (2019)}
-
-\item{var}{When \code{TRUE} the sampling variance is returned, when \code{FALSE} the stancdard error is returned.}
+\item{var}{When \code{TRUE} the sampling variance is returned, when \code{FALSE} the standard error is returned.}
 }
 \value{
 Sampling variance or standard error of Cohen's \emph{d}

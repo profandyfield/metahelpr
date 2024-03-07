@@ -1,5 +1,5 @@
 ---
-title: "Doing meta-analysis in R"
+title: "Doing meta-analysis in R: Cohen's *d*"
 author: "Andy Field"
 output:
   learnr::tutorial:
@@ -28,6 +28,7 @@ library(dplyr)
 library(ggplot2)
 #non tidyverse
 library(broom)
+library(DT)
 library(metafor)
 library(knitr)
 
@@ -36,26 +37,47 @@ source("./www/discovr_helpers.R")
 
 #Read dat files needed for the tutorial
 
+brewin_2024 <- metahelpr::brewin_2024
+brewin_es <- metahelpr::brewin_es
 
 
+tbl_font_size <- "12pt"
 
+
+# create some global tibbles
+
+brewin_agg <- brewin_es |> 
+  dplyr::group_by(author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+
+brewin_foa_agg <- brewin_es |> 
+  dplyr::group_by(foa_gp, author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
 ```
 
 ```{r, eval = F, echo = F}
 # Create bib file for R packages
 here::here("inst/tutorials/meta_d/packages.bib") |>
-  knitr::write_bib(c('here', 'tidyverse', 'dplyr', 'readr', 'forcats', 'tibble', 'knitr', 'broom', 'metafor'), file = _)
+  knitr::write_bib(c('here', 'tidyverse', 'dplyr', 'DT', 'readr', 'forcats', 'tibble', 'knitr', 'broom', 'metafor'), file = _)
 ```
 
 
-# discovr: Moderation and mediation
+# metahelpr: Meta-analysis using Cohen's *d*/Hedges' *g*
 
 ## Overview
 
 <div class="infobox">
   <img src="./images/discovr_hex.png" alt="discovr package hex sticker, female space pirate with gun. Gunsmoke forms the letter R." style="width:100px;height:116px;" class = "img_left">
   
-  **Usage:** This tutorial accompanies [Discovering Statistics Using R and RStudio](https://www.discovr.rocks/) [@field_discovering_2023] by [Andy Field](https://en.wikipedia.org/wiki/Andy_Field_(academic)). It contains material from the book so there are some copyright considerations but I offer them under a [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License](http://creativecommons.org/licenses/by-nc-nd/4.0/). Tl;dr: you can use this tutorial for teaching and non-profit activities but please don't meddle with it or claim it as your own work.
+  **Usage:** This tutorial is offered under a [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License](http://creativecommons.org/licenses/by-nc-nd/4.0/). Tl;dr: you can use this tutorial for teaching and non-profit activities but please don't meddle with it or claim it as your own work.
   
 </div>
 
@@ -87,7 +109,7 @@ By for now and good luck - you'll be amazing!
 
 ### Workflow
 
-* Before attempting this tutorial it's a good idea to work through [this tutorial on how to install, set up and work within `r rproj()` and `r rstudio()`](http://milton-the-cat.rocks/learnr/r/r_getting_started/).
+* Before attempting this tutorial it's a good idea to work [this playlist of tutorials](https://youtube.com/playlist?list=PLEzw67WWDg83weG3idsgy4wuOIJAashA2&si=PiI-sDvqc1DkaWOq) on how to install, set up and work within `r rproj()` and `r rstudio()`.
 
 * The tutorials are self-contained (you practice code in code boxes). However, so you get practice at working in `r rstudio()` I strongly recommend that you create an Quarto document within an `r rstudio()` project and practice everything you do in the tutorial in the Quarto document, make notes on things that confused you or that you want to remember, and save it. Within this Quarto document you will need to load the relevant packages and data. 
 
@@ -99,11 +121,8 @@ This tutorial uses the following packages:
 
 * `broom` [@R-broom]
 * `here` [@R-here]
-* `interactions` [@R-interactions]
 * `knitr` [@R-knitr]
-* `lavaan` [@R-lavaan; @rosseel_lavaan_2012]
-* `parameters` [@parameters2020; @R-parameters]
-* `sandwich` [@R-sandwich; @sandwich2006] is automatically loaded by `parameters`
+* `metafor` [@R-metafor; @metafor2010]
 
 It also uses these `tidyverse` packages [@R-tidyverse; @tidyverse2019]: `dplyr` [@R-dplyr], `forcats` [@R-forcats], `ggplot2` [@wickhamGgplot2ElegantGraphics2016], and `readr` [@R-readr].
 
@@ -111,9 +130,9 @@ It also uses these `tidyverse` packages [@R-tidyverse; @tidyverse2019]: `dplyr` 
 
 There are (broadly) two styles of coding:
 
-1. **Explicit**: Using this style you declare the package when using a function: `package::function()`. For example, if I want to use the `mutate()` function from the package `dplyr`, I will type `dplyr::mutate()`. If you adopt an explicit style, you don't need to load packages at the start of your Quarto document (although see below for some exceptions).
+1. **Explicit**: Using this style you declare the namespace (a.k.a. package name) when using a function: `package::function()`. For example, if I want to use the `mutate()` function from the package `dplyr`, I will type `dplyr::mutate()`. If you adopt an explicit style, you don't need to load packages at the start of your Quarto document (although see below for some exceptions).
 
-2. **Concise**: Using this style you load all of the packages at the start of your Quarto document using `library(package_name)`, and then refer to functions without their package. For example, if I want to use the `mutate()` function from the package `dplyr`, I will use `library(dplyr)` in my first code chunk and type the function as `mutate()` when I use it subsequently.
+2. **Concise**: Using this style you load all of the packages at the start of your Quarto document using `library(package_name)`, and then refer to functions without their namespace. For example, if I want to use the `mutate()` function from the package `dplyr`, I will use `library(dplyr)` in my first code chunk and thereafter refer to the function as `mutate()` when I use it.
 
 Coding style is a personal choice. The [Google `r rproj()` style guide](https://google.github.io/styleguide/Rguide.html) and [tidyverse style guide](https://style.tidyverse.org/) recommend an explicit style, and I use it in teaching materials for two reasons (1) it helps you to remember which functions come from which packages, and (2) it prevents clashes resulting from using functions from different packages that have the same name. However, even with this style it makes sense to load `tidyverse` because the `dplyr` and `ggplot2` packages contain functions that are often used within other functions and in these cases explicit code is difficult to read. Also, no-one wants to write `ggplot2::` before every function from `ggplot2`.
 
@@ -127,786 +146,1395 @@ library(tidyverse)
 
 To work *outside of this tutorial* you need to download the following data files:
 
-* [video_games.csv](https://www.discovr.rocks/csv/video_games.csv)
-* [lambert_2012.csv](https://www.discovr.rocks/csv/lambert_2012.csv)
+* [brewin_2024.csv](https://milton-the-cat.rocks/data/csv/brewin_2024.csv)
+* [brewin_es.csv](https://www.discovr.rocks/csv/brewin_es.csv)
 
 
-Set up an `r rstudio()` project in the way that [I recommend in this tutorial](http://milton-the-cat.rocks/learnr/r/r_getting_started/#section-working-in-rstudio), and save the data files to the folder within your project called [data]{.alt}. Place this code in the first code chunk in your Quarto document:
+Set up an `r rstudio()` project in the way that I recommend in this tutorial:
+
+![](https://youtu.be/EA7JW2SfKSY?si=P2GUFb1q1AHWOpaW)
+
+Then save the data files to the folder within your project called [data]{.alt}. Place this code in the first code chunk in your Quarto document:
 
 ```{r, eval=FALSE}
-vids_tib  <- here::here("data/video_games.csv") |> readr::read_csv()
-infidelity_tib <- here::here("data/lambert_2012.csv") |> readr::read_csv()
+brewin_2024  <- here::here("data/brewin_2024.csv") |> readr::read_csv()
+brewin_es <- here::here("data/brewin_es.csv") |> readr::read_csv()
 ```
 
-## `r user_visor()` Moderation [(2)]{.alt}
+## `r user_visor()` Overview of the statistical model [(2)]{.alt} {#theory}
 
-Well use an example of whether violent video games make people antisocial. Video games have been linked to increased aggression in youths. Another predictor of aggression and conduct problems is callous-unemotional traits such as lack of guilt, lack of empathy, callous use of others for personal gain. Imagine that a scientist explored the relationship between playing violent video games. She measured aggressive behaviour (**aggress**), callous-traits (**caunts**), and the number of hours per week they play video games (**vid_game**) in 442 youths. These data are stored in [vids_tib]{.alt}.
+### Fixed and random effect models
 
-#### `r alien()` Alien coding challenge
-
-Inspect the data in [vids_tib]{.alt}.
-
-```{r vids_tib, exercise = TRUE, exercise.lines = 2}
-
-```
-
-```{r vids_tib-solution}
-vids_tib
-```
-
-Moderation is where a variable (the moderator) affects the relationship between two others. In this example, we're predicting that the relationship between gaming (the predictor) and aggression (the outcome) is affected by the level of callous unemotional traits (the moderator). Statistically, a moderation effect is the interaction between the predictor and moderator and mathematically it is the effect on aggression of scores on the predictor multiplied by scores on the moderator. Therefore, the model we're looking to fit is:
+Broadly speaking there are two flavours of the meta-analysis model, both of which are variations on the linear model. The first is the **fixed-effects model**, in which studies in the meta-analysis are assumed to be sampled from a population with a fixed effect size or one that can be predicted from a few predictors. In this model there is one source of 'error', which is sampling variation. Thinking about this in terms of a linear model we have
 
 $$
-\text{Aggression}_i = b_0 + b_1\text{Gaming}_i + b_2\text{Callous}_i + b_3(\text{Gaming}\times\text{Callous})_i + \varepsilon_i
+\begin{aligned}
+d_k &= \delta + \varepsilon_k \\
+\varepsilon &\sim N(0, \sigma^2)
+\end{aligned}
 $$
 
-The moderation effect is represented by $b_3$, the parameter attached to the interaction term ($\text{Gaming}\times\text{Callous}$).
+In other words, the effect size (Cohen's *d*) in study *k* (denoted $d_k$) is 'predicted from' or 'made up of', the effect size (size of *d*) in the population, which we denote as $\delta$, plus some sampling error, denoted as $\varepsilon_k$ (the standard notation for linear models). The usual assumption applies that the model errors follow a normal distribution with a mean of 0 (i.e. on average the error is zero) and a variance denoted $\sigma^2$. In this model, the effect size in each study is assumed to have been generated from a single population with a single effect size and the only reason that effect sizes vary across studies is because of sampling variance. Spoiler alert, this conceptualization probably isn't realistic [@field_is_2005].
 
-### `r bmu()` Centring variables [(1)]{.alt}
+The alternative is the **random-effects model**, in which studies in the meta-analysis are assumed to be sampled from different populations with effect sizes that themselves vary. In this model there are two sources of 'error': (1) sampling variation (denoted as $\varepsilon_k$); (2) variation between the true (population) effect size from which studies are taken (denoted as $\zeta_k$). In terms of a linear model we have
 
-**Centring** refers to the process of transforming a variable into deviations around a fixed point. This fixed point can be any value that you choose, but typically its the grand mean (i.e. the overall mean of scores on a variable). Grand mean centring for a given variable is achieved by taking each score and subtracting from it the mean of all scores (for that variable).
+$$
+\begin{aligned}
+d_k &= \delta_k + \varepsilon_k \\
+\delta_k &= \theta + \zeta_k\\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta &\sim N(0, \tau^2)
+\end{aligned}
+$$
 
-### `r user_visor()` Why centering matters [(2)]{.alt}
+The first line looks the same as the first line of the previous model except that the population effect size has acquired a subscript of $k$. This difference is important and reflects the fact that in the random-effects model effect sizes within studies are not assumed to reflect a single population effect size but are instead assumed to have come from a population with an effect size that is different to the populations from which other studies in the meta-analysis were sampled. So now, the effect size in study *k* is made up of the effect size in population *k* plus some sampling error. The second line tells us that the population effect size for study *k* ($\delta_k$) is made up of the true effect size ($\theta$) and sampling error at the population level $\zeta_k$. The population-level sampling error is assumed to be normally distributed with a mean of 0 (i.e. on average the error is zero) and a variance denoted $\tau^2$. The random effects model can, therefore be thought of in terms of effect sizes within studies being sampled from populations which themselves are sampled from a 'superpopulation' that has a fixed effect size that represents the 'true' effect size of interest.
 
-Centring is important when your model contains an interaction term because it makes the *b*s for lower-order effects interpretable. There are good reasons for not caring about the lower-order effects when the higher-order interaction involving those effects is significant; for example, if the gaming × callous traits interaction is significant, then its not clear why we would be interested in the individual effects of gaming and callous traits. However, when the interaction is not significant, centring makes interpreting the main effects easier. With centred variables the *b*s for individual predictors have two interpretations (1) they are the effect of that predictor at the mean value of the sample; and (2) they are the average effect of the predictor across the range of scores for the other predictors. To explain the second interpretation, imagine we took everyone who spent no hours gaming, estimated the linear model between aggression and callous traits and noted the *b*. We then took everyone who played games for 1 hour and did the same, and then took everyone who gamed for 2 hours per week and did the same. We continued doing this until we had estimated linear models for every different value of the hours spent gaming. We'd have a lot of bs, each one representing the relationship between callous traits and aggression for different amounts of gaming. If we took an average of these bs then we'd get the same value as the b for callous traits (centred) when we use it as a predictor with gaming (centred) and their interaction.
+This model can be thought of as a hierarchical model with two levels of the hierarchy.
 
-### `r bmu()` Centring variables using `r rproj()` [(1)]{.alt}
+#### The level 1 (participant level) model
 
-We can centre variables using the `mutate()` function, which we've used many times before.
+Ignoring the distributions of errors to simplify things, at level 1 (the bottom level) we have the participant-level model in which effect sizes for study $k$ are predicted from the effect size in the corresponding population and some sampling variation (at the sample level).
+
+$$
+\begin{aligned}
+d_k &= \delta_k + \varepsilon_k \\
+\end{aligned}
+$$
+
+#### The level 2 (study level) model
+
+At level 1 (the top level) we have the study-level model in which effect sizes for population $k$ is predicted from the true effect size and some sampling variation (at the population level).
+
+
+$$
+\begin{aligned}
+\delta_k &= \theta + \zeta_k\\
+\end{aligned}
+$$
+
+#### The composite model
+
+Rather than spread the model across two lines, we can equivalently write it as:
+
+$$
+\begin{aligned}
+d_k &= \theta + \zeta_k + \varepsilon_k \\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta &\sim N(0, \tau^2)
+\end{aligned}
+$$
+
+
+<div class="infobox">
+
+The primary role of meta-analysis is, therefore, to use the data from many studies to estimate the population effect size. This estimate ($\hat{\theta}$) is assumed to reflect the true size of the effect of interest.
+  
+</div>
+
+### Moderators of effect sizes
+
+In the previous section, we saw that the effect size for a study can be expressed as a linear model. In that model, the effect size is predicted from the population effect size and some sources of sampling variation. In effect these models are 'intercept-only' models. That is, the effect size for a study is predicted from only the intercept (i.e. an estimate of the true effect size). However, familiarity with linear models tells us that the basic meta-analytic model could be extended to include any number of predictors. Each predictor would be added to the model, and would be assigned a parameter that is estimated form the data. These parameters quantify the size and direction of the relationship between each predictor and the size of effect. In general, if we denote predictors with $X$ and their parameters with $\beta$ (i.e. commonly-used symbols for linear models), we can use the data to estimate a model that includes predictors:
+
+$$
+\begin{aligned}
+d_k &= \theta + \beta_1X_k + \beta_2X_k + \ldots + \beta_nX_k + \zeta_k + \varepsilon_k \\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta &\sim N(0, \tau^2)
+\end{aligned}
+$$
+
+Predictors/moderators can be continuous or categorical variables. When a moderator is made up of several categories then it's possible to use any of the standard coding schemes such as dummy coding, contrast coding and so on. In this tutorial we use an example of dummy coding.
+
+
+<div class="infobox">
+
+A secondary role of meta-analysis is to test predictions that the size of effect will be associated with specific predictors relating to things like sample and methodological characteristics.
+
+</div>
+
+### Multiple effect sizes within studies
+
+It is the norm rather than the exception that studies contribute more than one effect size to a meta-analysis. For example, the outcome of interest might have been measured using different questionnaires yielding a different effect sizes for each measure. Clinical trials often use multiple control groups yielding different effect sizes for the intervention group compared to each of the controls. 
+
+We can handle this situation by adding a middle level to our hierarchy which acknowledges that effect sizes are clustered within studies. 
+
+
+#### The level 1 (participant level) model
+
+At level 1 (the bottom level) we again have the participant level model in which effect sizes for study $k$ are predicted from the effect size in the corresponding population and some sampling variation (at the sample level). This main difference from the random-effects model is that there are now two subscripts to acknowledge that each effect size *j* is nested within study *k*. In other words, it acknowledges the presence of an extra level in the hierarchy.
+
+$$
+\begin{aligned}
+d_{jk} &= \delta_{jk} + \varepsilon_{jk} \\
+\end{aligned}
+$$
+
+
+#### The level 2 (within study level) model
+
+At level 2 (the middle level) we have the within-study model which acknowledges that each population effect size associated with effect size *j* within study *k* (\delta_{jk}) is itself made up of the effect size for the associated population, $\kappa_k$ and some sampling error (denoted as \zeta_{(2)jk} where the 2 tells us this is the error at level 2).
+
+$$
+\begin{aligned}
+\delta_{jk} &= \kappa_k + \zeta_{(2)jk}\\
+\end{aligned}
+$$ 
+
+Note that $\kappa_k$ does not have a *j* subscript because all of the *j* effect sizes within a study have the same population and, therefore, the same population effect size. However, different studies (and, remember, *k* denotes studies) have the same population and, therefore, the same population effect size so $\kappa$ varies across studies (*k*) but not across effect sizes within a study (*i*). 
+
+The sampling error (denoted as $\zeta_{(2)jk}$) is assumed to be normally distributed with a mean of 0 and variance that we will denote as $\sigma^2_w$ with the *w* reminding us that this is *within*-study sampling error. The sampling error ($\zeta_{(3)k}$) reflects sampling variation across both effect sizes and studies and so has both *j* and *k* as subscripts.
+
+
+
+#### The level 3 (between-study level) model
+
+At level 3 (the top level) we have the study-level model in which effect sizes for population $k$ is predicted from the true effect size ($\theta$) and some sampling variation (at the population level).
+
+$$
+\begin{aligned}
+\kappa_k &= \theta + \zeta_{(3)k}\\
+\end{aligned}
+$$
+
+Note that $\theta$ has no subscripts because it is fixed (it is the true effect size and does not vary by study *k* or by effect size *j*). The sampling error (denoted as $\zeta_{(3)k}$) is assumed to be normally distributed with a mean of 0 and variance that we will denote as $\sigma^2_b$ with the *b* reminding us that this is *between*-study sampling error. The sampling error ($\zeta_{(3)k}$) reflects sampling variation across studies and so has a *k* subscript.
+
+
+
+#### The composite model
+
+Rather than spread the model across three lines, we can equivalently write it as follows, with the bottom three lines explicitly describing the distributions of the error terms/
+
+$$
+\begin{aligned}
+d_{jk} &= \theta + \zeta_{(2)jk} + \zeta_{(3)k} + \varepsilon_{jk} \\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta_{(2)} &\sim N(0, \sigma_w^2) \\
+\zeta_{(3)} &\sim N(0, \sigma_b^2) \\
+\end{aligned}
+$$
+
+In other words, effect size *j* within study *k* is made up of the true effect ($\theta$) plus sampling variation at the participant level ($\varepsilon_{jk}$), within each study ($\zeta_{(2)jk}$) and across studies ($\zeta_{(3)k}$)
+
+#### Moderators
+
+Within this extended framework we can add moderators of effect sizes in the same way as described earlier but the moderators can operate at the study level (all effect sizes within a study have the same value for a particular model) in which case they will have a *k* subscript only, or they can operate at the effect size level (effect sizes within a study can have different values of the same moderator in which case they have a *jk* subscript.) For example,
+
+$$
+\begin{aligned}
+d_{jk} &= \theta + \beta_1X_k + \beta_2X_k + \ldots + \beta_nX_k + \zeta_{(2)jk} + \zeta_{(3)k} + \varepsilon_{jk} \\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta_{(2)} &\sim N(0, \sigma_w^2) \\
+\zeta_{(3)} &\sim N(0, \sigma_b^2) \\
+\end{aligned}
+$$
+
+
+## `r bmu()` The study [(1)]{.alt} {#study}
+
+@taylor_evidence_2022 reported that in healthy participants memories of traumatic and comparison films did not differ in coherence. However, @brewin_meta-analysis_2024 argued that there is convincing evidence for trauma memories in PTSD being incoherent or disorganized and conducted a meta-analysis to estimate the effect size between PTSD status and memory incoherence/disorganization. Key to the analysis is the fact that there are two distinct approaches to measuring disorganization/incoherence with acceptable face validity.
+
+- [FOA]{.alt}: This method, based on therapy with PTSD patients, is to elicit a very detailed trauma narrative that includes the worst moments and have judges rate individual utterance units for markers of disorganization such as repetition and non-consecutive chunks.
+- [Not FOA]{.alt}: This approach is based on judges or participants rating the entire memory or narrative (rather than specific details within in). This is the method employed by @taylor_evidence_2022 among others.
+
+Specifically effect sizes were generated through one of four memory coding methods:
+
+- [FOA (Detailed)]{.alt}: uses the FOA methodology with a detailed coding scheme
+- [FOA (Global)]{.alt}: uses the FOA methodology but with global ratings coding scheme
+- [Not FOA: (Disorganisation)]{.alt}: does not use the FOA methodology and uses measures of memory disorganisation
+- [Not FOA (Organisation)]{.alt}: does not use the FOA methodology and uses measures of memory organisation (the direction of these effects had to be reversed before the meta-analysis)
+
+This tutorial works through some parts of the meta-analysis conducted by @brewin_meta-analysis_2024. Specifically we look at conducting meta-analysis using Cohen's *d* as the effect size [@cohen_statistical_1988].
+
+
+## `r user_visor()` The raw data [(2)]{.alt}
+
+Usually for a meta-analysis you would input the raw data into a CSV file. The data for this study are in Table 1. Note the following things and use the scroll bars to help you see parts of the data
+
+- **Each row represents information for an effect size and each column codes that information**: for example, Berntsen et al. (2003) in the first row contains information for a single effect size. The columns tell us things about that effect size such as that high disorganization is represented by a low score (`high_disorganization_is`), a memory questionnaire was used (`method`), memories were rated with a method that was not FOA (`foa`), the clinical group was PTSD (`clinical_group`), and the mean memory rating for the clinical group was 3.25 (`clinical_mean`) and 3.25 for controls (`control_mean`) and so on.
+- Studies can contribute multiple effect sizes. For example, Evans et al (2007) contributes two effect sizes one is based on a global FOA assessment of memories and the other is based on a detailed FOA measure (see the columns `foa_type`,  `foa` and `foa_gp`, which combines the two into a single variable).
+- Each study has a numeric ID variable (`study`)
+- Each effect size (row) has a unique ID (`es_id`)
+- For most studies we have the mean, standard deviation and sample size (*n*) of the memory rating for the clinical group and controls (in the variables `clinical_mean`, `clinical_sd`, `clinical_n`, `control_mean`, `control_sd`, and `control_n`). This is the information we need to compute Cohen's $d$.
+- Sometimes studies don't include the information we need but report other information that can lead us to Cohen's $d$. For example, the paper might report Cohen's *d* directly, a *t*-statistic for the comparison of mean disorganization in clinical and control groups (`t` in our data), a *p*-value, or a correlation coefficient between PTSD symptoms (or group) and memory disorganization (`r` in our data). Note this kind of information for any study that reports it. 
+
+```{r, echo = F}
+brewin_2024 |> 
+  dplyr::relocate(notes, .after = last_col()) |> 
+  DT::datatable(caption = 'Table 1: Data from Brewin & Field (2024)',
+                options = list(
+                  autoWidth = TRUE,
+                  scrollX = TRUE,
+                  scrollY = "500px",
+                  paginate = FALSE,
+                  dom = 'tp',
+                  columnDefs = list(
+                    list(className = 'dt-center', targets = "_all"),
+                    list(width = '2000px', targets = ncol(brewin_2024)),
+                    list(width = '450px', targets = c(1, 3, 6))
+                    ),
+                  initComplete = htmlwidgets::JS(
+                    "function(settings, json) {",
+                    paste0("$(this.api().table().container()).css({'font-size': '", tbl_font_size, "'});"),
+                    "}")
+                  )
+                )
+```
+
+
+
+## `r user_visor()` Computing effect sizes [(2)]{.alt}
+
+### `r user_visor()` Working with descriptive statistics [(2)]{.alt}
+
+
+Well start by using the raw data to calculate Cohen's *d* [@cohen_statistical_1988] using the `escalc()` function from `metafor` [@R-metafor; @metafor2010]. The `escalc()` function uses the information in the data to compute *d* and its variance and stores it in new columns/variables in your tibble. The raw data are stored in [brewin_2014]{.alt}.
 
 #### `r robot()` Code example
 
-For example, to centre the variable **caunts** within [vids_tib]{.alt}, we could use this code within `mutate()`:
+The `escalc()` function takes the general form (including only the arguments relevant to us)
 
 ```{r, eval = F}
-caunts_cent = caunts - mean(caunts, na.rm = TRUE)
+metafor::escalc(measure = "SMD",
+                vtype = "UB",
+                n1i = column_containing_exp_group_sample_size,
+                n2i = column_containing_control_group_sample_size,
+                m1i = column_containing_exp_group_mean,
+                m2i = column_containing_control_group_mean,
+                sd1i = column_containing_exp_group_sd,
+                sd2i = column_containing_control_group_sd,
+                ti = column_containing_t_statistic,
+                pi = column_containing_p_value,
+                di = column_containing_d_value,
+                ri = column_containing_r_value,
+                slab = column_containing_author_labels,
+                var.names = c("variable_name_for_effect_size", "variable_name_for_effect_size_variance"),
+                data = name_of_tibble) |> 
+  as_tibble()
 ```
 
-This code creates a variable **caunts_cent** which is the value of the score for **caunts** minus the mean score ([mean(caunts, na.rm = TRUE)]{.alt}).
+- The argument `measure = "SMD"` specifies the effect size measure to calculate and ["SMD"]{.alt} stands for standardized mean difference, in other words Cohen's *d*. In fact, Cohen's *d* is biased in small samples so the function automatically applies a correction and technically what we're working with is Hedges' *g* [@hedges_distribution_1981]. See [the technical appendix](#appendix).
+- The argument `vtype = "UB"` specifies the type of sampling variance to calculate. The default is ["LS"]{.alt} but I suggest changing this to ["UB"]{.alt}, which gives an unbiased variance estimate [@hedges_random_1983]. See [the technical appendix](#appendix).
+- For most studies we will estimate *d* from the mean, standard deviation and sample size (*n*) of the outcome measure for the group of interest (in this case the clinical group) and the controls. A series of arguments allow you to specify the variable sin the data that relate to this information.
+    - `n1i` = specify the variable containing the sample size for the group of interest (in this case `clinical_n`)
+    - `n2i` = specify the variable containing the sample size for the control/comparison group (in this case `control_n`)
+    - `m1i` = specify the variable containing the mean outcome for the group of interest (in this case `clinical_mean`)
+    - `m2i` = specify the variable containing the mean outcome for the control/comparison group (in this case `control_mean`)
+    - `sd1i` = specify the variable containing the standard deviation of the outcome for the group of interest (in this case `clinical_sd`)
+    - `sd2i` = specify the variable containing the standard deviation of the outcome for the control/comparison group (in this case `control_sd`)
+- As mentioned above, sometimes studies don't include the information we need but we can get Cohen's $d$ in a different way. For example, if the paper reports a *t*-statistic for the comparison of mean disorganization in clinical and control groups (in the column `t`) we can convert this to *d*. There are arguments for obtaining *d* by other means:
+  - `ti` = (if you have one) specify a variable containing *t*-statistics that compare your target group to the control on the outcome of interest (in this case `t`)
+  - `pi` = (if you have one) specify a variable containing a *p*-statistics for a comparison of your target group to the control on the outcome of interest (we don't have such a variable in these data). Be careful with this argument, see [www.metafor-project.org/doku.php/tips:assembling_data_smd](https://www.metafor-project.org/doku.php/tips:assembling_data_smd)
+  - `di` = (if you have one) specify a variable containing *d* for a comparison of your target group to the control on the outcome of interest (we don't have such a variable in these data)
+  - `ri` = (if you have one) specify a variable containing *r* for the association between a measure of your grouping variable and the outcome (in this case `r`). I'd recommend [working with correlation coefficients manually](#rd).
+- Some other useful options
+  - `slab` = specify the variable that contains the text labels for the studies (in this case `author`)
+  - `var.names` = specify names for the variables that `escalc` creates. I'd suggest `g`, `v_g` for the effect size and its variance respectively.
+  - `data` = specify the name of the tibble you want to use (in this case `brewin_2024`).
+
+For these data the final code will look like this:
+
+```{r, eval = F}
+brewin_2024g <- metafor::escalc(measure = "SMD",
+                vtype = "UB",
+                n1i = clinical_n,
+                n2i = control_n,
+                m1i = clinical_mean,
+                m2i = control_mean,
+                sd1i = clinical_sd,
+                sd2i = control_sd,
+                ti = t,
+                slab = author,
+                var.names = c("g", "v_g"),
+                data = brewin_2024) |> 
+  as_tibble()
+```
+
+
+Notice at the end I have piped the output into `as_tibble()` which converts the data to a tibble. I have stored this `tibbble` as  `brewin_2024g` (outside of this tutorial you could instead replace the original tibble by assigning the results to `brewin_2024`).
+
+<div class="tip">
+  `r cat_space()` **Tip**
+
+  The `escalc()` function appends the effect sizes and their variances to your data, but doesn't export the augmented data as a tibble. We can coerce the output into a tibble by piping the results of `escalc()` into the `tibble::as_tibble()` function. For example,
+
+```{r, eval = F, class.source = '.panel_alt'}
+my_data_with_effect_sizes <- metafor::escalc(...) |> 
+  as_tibble()
+```
+</div>
 
 #### `r alien()` Alien coding challenge
 
-Use the code in the example, and what you already know about `mutate()` to add the variables **caunts_cent** and **vid_game_cent**, which are centred versions of **caunts** and **vid_game**, to [vids_tib]{.alt}.
+Use the code above to create a tibble called `brewin_2024g` that adds Hedges' *g* and its variance to the `brewin_2024` tibble. Display the tibble to see what it looks like and check it has added the two new columns that you want.
 
-```{r vid_cent, exercise = TRUE, exercise.lines = 5}
+```{r es_tib, exercise = TRUE, exercise.lines = 14}
 
 ```
 
-```{r vid_cent-hint-1}
-# Start by creating vids_tib from itself:
-vids_tib <- vids_tib
-# Now pipe into mutate()
-```
-
-```{r vid_cent-hint-2}
-# Pipe into mutate():
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-  )
-# Within mutate add the example code to get caunts_cent
-```
-
-```{r vid_cent-hint-3}
-# Compute caunts_cent
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-    caunts_cent = caunts - mean(caunts, na.rm = TRUE)
-  )
-# Now adapt the code for caunt_cent to create vid_game_cent
-# Don't forget the comma at the end of the line that creates caunt_cent
-```
-
-```{r vid_cent-hint-4}
-# Solution
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-    caunts_cent = caunts - mean(caunts, na.rm = TRUE),
-    vid_game_cent = vid_game - mean(vid_game, na.rm = TRUE)
-  )
-vids_tib
-```
-
-That's it, you have just centred some variables!
-
-```{r gmc_quiz, echo = F}
-question("Grand mean centring for a given variable is achieved by:",
-         answer("Taking each score and subtracting from it the mean of all scores (for that variable).",  correct = TRUE, message = "Well done, this answer is correct."),
-         answer("Taking the mean of all scores (ignoring from which variable they come) and subtracting each score from it.", message = "Unlucky, have another try."),
-         answer("Taking each score and dividing it by the mean of all scores (for that variable).", message = "Unlucky, have another try."),
-         answer("Taking each score, subtracting the mean and then dividing by the standard deviation.", message = "Close. This answer describes standardizing the score, not centring it."),
-         allow_retry = TRUE,
-         random_answer_order = TRUE
-)
+```{r es_tib-solution}
+brewin_2024g <- metafor::escalc(measure = "SMD",
+                vtype = "UB",
+                n1i = clinical_n,
+                n2i = control_n,
+                m1i = clinical_mean,
+                m2i = control_mean,
+                sd1i = clinical_sd,
+                sd2i = control_sd,
+                ti = t,
+                slab = author,
+                var.names = c("g", "v_g"),
+                data = brewin_2024) |> 
+  as_tibble()
+brewin_2024g # show the data
 ```
 
 
-### `r user_astronaut()` Using a function to center variables [(3)]{.alt}
+### `r user_astronaut()` Working with correlations [(3)]{.alt} {#rd}
 
-If you need to centre more than a couple of variables, you might find it useful to do something a bit trickier using `across()` to apply a mutation to multiple variables. In this case the mutation we want to apply is to subtract the mean score from each score.
+<div class="infobox">
+  `r info()` **Information**
+
+  Some studies that we wanted to use did not report means and standard deviations for the relevant groups and/or measures, but instead provided a correlation coefficient between PTSD symptoms and memory disorganization. This section describes how to handle converting between $r$ and $\hat{d}$, but is quite technical. For those who want to ignore it, `brewin_es` contains the data with all of the effect sizes included so you can move straight onto the next section.
+</div>
+
+There are two main types of Pearson correlation coefficient that you might want to convert to $\hat{d}$
+
+- Standard *r*: The standard Pearson correlation measures the association between two continuous variables. In this example, if a study reported the correlation between PTSD symptoms and memory disorganization then this is a standard correlation. 
+- Biserial *r*: The biserial correlation is the Pearson correlation between one continuous variable and one dichotomous variable (i.e. categorical variable made up of two categories). The dichotomous variable is assumed to have an underlying continuum. In this example, if a study reported the correlation between group membership (clinical or control) and memory disorganization then this is a biserial correlation. 
+
+Where the relevant descriptive information is available the formulae in @mathur_simple_2020 can be used to convert a standard Pearson correlation coefficient into $\hat{d}$.
+
+$$
+\begin{aligned}
+\hat{d} &= \frac{r\Delta}{s_x\sqrt{1-r^2}} \\
+\widehat{SE}_\hat{d} &=  \left|\hat{d}\right|\sqrt{\frac{1}{r^2(N-3)} + \frac{1}{2(N-1)}}
+\end{aligned}
+$$
+
+In which $r$ is the correlation coefficient, $s_x$ is the standard deviation of the predictor variable (in this case PTSD symptoms), $N$ is the total sample size on which $r$ is based and $\Delta$ specifies a change in the predictor that is of interest to the researcher. The standard error of $d$ uses the absolute value of the estimate of $\left|\hat{d}\right|$ the variance is the standard error.
+
+This equation expresses the effect in terms of the change in the outcome variable resulting from an increase of $\Delta$ units in the continuous predictor measure. So, for these data if we set $\Delta = 10$, then the resulting $\hat{d}$ expresses the change in memory disorganization associated with a 10-unit increase in PTSD symptoms. 
+
+To make the resulting $\hat{d}$ comparable to studies for which $d$ represented mean differences in disorganization between PTSD and control groups, $\Delta$ for a given study was set to be the difference between the mean PTSD scores in PTSD and control groups.
+
+To apply this formula, the standard deviation of the PTSD measure ($s_x$) for the entire sample is required. Articles that did not report descriptive information for the PTSD measure for the entire sample did report it for PTSD and control subgroups allowing the whole sample variance ($s^2_\text{combined}$) to be estimated using [a standard formula](#appendix). Where this information was not available the formulae to convert a point biserial correlation can be used 
+
+$$
+\begin{aligned}
+\hat{d} &= \frac{2r}{\sqrt{1-r^2}} \\
+\widehat{SE}_\hat{d} &=  \frac{2}{\sqrt{(N-1)(1-r^2)}}.
+\end{aligned}
+$$
+
+In effect, this is the same as applying the equation in @mathur_simple_2020 but with $\Delta = 2s_x$. In other words, it will yield the same value as the equation used for a continuous measure if PTSD and control groups had a mean difference on a continuous PTSD measure of about 2 standard deviations.
+
+In both cases the variance of $\hat{d}$ is the [standard error squared]{#appendix}.
+
+OK, so how do we implement this in `r rproj()`? This package has a couple of helper functions that you can use along with standard tidyverse functions.
+
+- `pooled_var(nx, ny, sdx, sdy, ux, uy, sd = F)` calculates the pooled standard deviation of two groups based on specifying the variables that relate to the group sample sizes (`nx` and `ny`), standard deviations (`sx` and `sy`), and their means (`ux` and `uy`).
+- `d_from_r(delta, sx, r)` converts a standard or biserial Pearson correlation to *d*. You need to specify the following arguments
+  - `sx`: this needs to be set to the name of the variable containing the whole sample standard deviation of the predictor (in our data this variable is called `ptsd_sd_all`)
+  - `r`: this needs to be set to the name of the variable containing the correlation coefficient
+  - `delta`: set this to the value of delta that you want. In out case, we set this to be the difference in mean PTSD in the two groups. If this argument is not set the equation to convert a biserial *r* is used.
+- `d_to_g` applies Hedge's correction to $d$
+- `var_d_from_r` calculates the variance for Hedges' *g* based on a correlation coefficient.
 
 #### `r robot()` Code example
+  
+Putting this all into practice leads us through the following gateway to coding hell:
 
-First, we need to write a general function to centre variables:
-
-```{r}
-centre <- function(var){
-  var - mean(var, na.rm = TRUE)
-}
+```{r, eval = FALSE}
+brewin_es <- brewin_2024g |> 
+  dplyr::mutate(
+    n_total = ifelse(is.na(clinical_n) | is.na(control_n), n_for_r, clinical_n + control_n),
+    ptsd_sd_all = ifelse(is.na(ptsd_sd_all), metahelpr::pooled_var(nx = clinical_n, ny = control_n, sdx = ptsd_sd_clin, sdy = ptsd_sd_ctrl, ux = ptsd_mean_clin, uy = ptsd_mean_ctrl, sd = T), ptsd_sd_all),
+    ptsd_diff = ptsd_mean_clin-ptsd_mean_ctrl,
+    d_r = ifelse(!is.na(ptsd_diff), metahelpr::d_from_r(delta = ptsd_diff, sx = ptsd_sd_all, r = r), metahelpr::d_from_r(r = r)),
+    g = ifelse(is.na(g), metahelpr::d_to_g(n = n_total, d = d_r), g), 
+    g = ifelse(high_disorganization_is == "Low score", -g, g), 
+    v_g = ifelse(is.na(v_g),  ifelse(!is.na(ptsd_diff), metahelpr::var_d_from_r(n = n_total, r = r, d = g),  metahelpr::var_d_from_r(n = n_total, r = r)), v_g)
+    )
 ```
 
-This code creates a function called `centre()` which takes a set of scores as its input. I've named this input [var]{.adj} (short for variable), but it could be anything. Within the function, we take whatever scores are passed into the function (remember these scores are represented by [var]{.adj}), and subtract the mean of those scores from them. The function will, therefore, return the scores you pass in with their mean subtracted. In other words, it returns the centred scores.
+Let's translate this code in steps:
 
-For example, if we execute the code above (to create the function) and execute:
+#### The general idea
+
+The first thing we need to do is to add variables to `brewin_2024g` using `dplyr::mutate()` and then store this new version of the data as a new tibble called `brewin_es`. (If you prefer you can save it over the original tibble.) This is achieved using `brewin_es <- brewin_2024g |>  dplyr::mutate(...)`. The code *within* mutate controls what variables are created and added to the tibble.
+
+
+<div class="tip">
+  `r cat_space()` **Tip**
+
+ Multiple times we use standard functions and operators that you might have met before.
+ 
+ The `ifelse()` which takes the following format
+
+```{r, eval = F, class.source = '.panel_alt'}
+ifelse(condition_to_be_met,
+       do_this_if_condition_is_met,
+       do_this_if_condition_is_NOT_met)
+```
+
+Basically, within the function you set a condition, then you say what you'd like to happen if the condition is met, and then what you'd like to happen if it is not met.
+
+The `is.na()` function tells us whether a given case of a variable is an `NA`.
+
+The operator `!` negates something. For example, `!is.na()` tells us whether a given case of a variable is [not]{.alt} an `NA`.
+
+The `|` operator means 'or'.
+
+</div>
+
+#### Within mutate
+
+Within `mutate()` we have the following lines:
 
 ```{r, eval = F}
-centre(vids_tib$caunts)
+n_total = ifelse(is.na(clinical_n) | is.na(control_n),
+                 n_for_r,
+                 clinical_n + control_n)
 ```
 
-Wed see the centred **caunts** scores. Try this code. It creates the function, then shows the raw scores in **caunts** and then uses the function we have created to show the centred scores:
+This line creates a variable called `n_total` that will contain the total sample size for *r* ($N$ in the equations). For some studies we have this information (in the variable `n_for_r`), but for others we don't so we have to use `ifelse()` to set different rules depending on whether we have the sample sizes for each group.
 
-```{r cntr_fnc, exercise = TRUE, exercise.lines = 5}
-centre <- function(var){
-  var - mean(var, na.rm = TRUE)
-}
-vids_tib$caunts
-centre(vids_tib$caunts)
+The condition we set is `is.na(clinical_n) | is.na(control_n)` which means "if the variable `clinical_n` OR the variable `control_n` is an `NA`". We then tell `r rproj()` that when this condition is met, we set `n_total` to be the variable `n_for_r`, and when the condition is not met we set `n_total` to be the sum of the variables `clinical_n` and `control_n` (that is we add the group sample sizes together).
+
+> Summary: this line creates a variable called `n_total` that is the sample size for *r*. If either `clinical_n` OR `control_n` are missing then the value of `n_for_r` is used, otherwise it is set to the sum of the clinical and control group sample sizes.
+
+```{r, eval = F}
+ptsd_sd_all = ifelse(is.na(ptsd_sd_all),
+                     metahelpr::pooled_var(nx = clinical_n,
+                                           ny = control_n,
+                                           sdx = ptsd_sd_clin,
+                                           sdy = ptsd_sd_ctrl,
+                                           ux = ptsd_mean_clin,
+                                           uy = ptsd_mean_ctrl,
+                                           sd = T),
+                     ptsd_sd_all)
 ```
 
-Having written the function we can use it in conjunction with `mutate()` and `across()` to centre all variables that we select.
+This line creates a variable called `ptsd_sd_all` and we want this variable to contain the standard deviation of the PTSD measure (i.e. $s_x$). Sometimes we have this information from the study (stored in the variable `ptsd_sd_all`) and sometimes we'll need to calculate it from other information.
 
-#### `r robot()` Code example
+Again we `ifelse()` to set different rules depending on whether we need to calculate `ptsd_sd_all` or already have it. The condition we set is `is.na(ptsd_sd_all)` which means "if the variable `ptsd_sd_all` is an `NA`". In other words "is the value for `ptsd_sd_all` missing?". We then tell `r rproj()` that when this condition is met (i.e. the value is missing), use the function `pooled_var()` to calculate it, but if it is NOT missing then use the existing value.
 
-For example, having executed the code to create the function `centre()`, we could use this function to centre **vid_game** and **caunts** by executing:
+> Summary: this line creates a variable called `ptsd_sd_all` that is the standard deviation of the PTSD measure (i.e. $s_x$). If this score doesn't already exist calculate it using `pooled_var()`, otherwise use the existing value.
 
 
-```{r cntr_mute_at, exercise = TRUE, exercise.lines = 6}
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-    dplyr::across(c(vid_game, caunts), list(cent = centre))
-    )
-
-vids_tib
+```{r, eval = F}
+ptsd_diff = ptsd_mean_clin - ptsd_mean_ctrl
 ```
 
-This code uses `mutate()` to add variables to [vids_tib]{.alt} that contain centred scores. Within `mutate()` we use `across()` to select the variables to be mutated (in this case **vid_game** and **caunts**) and to apply the function `centre()`, which we created to centre scores, to them. To prevent the original variables from being overwritten I have specified [list(cent = centre)]{.alt} within `across()`. This code tells `across()` to apply the function [centre]{.alt}, but to add the suffix [_cent]{.alt} to the variable name. The end result is that the centred variables will be named after the original variables but with [_cent]{.alt} added to the end; in this case, you should hopefully get two new variables called **caunts_cent** and **vid_game_cent** that contain the centred scores.
+This line creates a variable called `ptsd_diff`, which is the difference between the PTSD scores in the clinical group (`ptsd_mean_clin`) and the control group (`ptsd_mean_ctrl`). This tells us (on average) the gap in PTSD symptoms between the groups and will be used later to set $\Delta$.
 
-### `r user_visor()` Specifying interaction terms  [(2)]{.alt}
-
-I mentioned already that moderation is represented by the interaction between the predictor and moderator in a linear model. Mathematically speaking, we are literally looking at the effect of the two variables multiplied together. The interaction variable in our example would be the scores on the time spent gaming multiplied by the scores for callous-unemotional traits.
-
-We can specify an interaction term within a model formula in `r rproj()` in two ways. The first, in general form, is:
-
-```{r, eval= F}
-var_1:var_2
+```{r, eval = F}
+d_r = ifelse(!is.na(ptsd_diff),
+             metahelpr::d_from_r(delta = ptsd_diff, sx = ptsd_sd_all, r = r),
+             metahelpr::d_from_r(r = r))
 ```
 
-This is the interaction between variables [var_1]{.alt} and [var_2]{.alt}.
+This line creates a variable called `d_r` which will contain values of *d* converted from *r*. Again we `ifelse()` to set different rules depending on whether we have enough information to calculate *d* from the standard *r* or we need to use the equations for biserial *r*. The condition we set is `!is.na(ptsd_diff)` which means "if the variable `ptsd_diff` is NOT an an `NA`". In other words "does the value for `ptsd_sd_all` exist?". We then tell `r rproj()` that when this condition is met (i.e. when `ptsd_sd_all` exist), use the function `d_from_r()` to calculate *d* setting delta equal to the value in `ptsd_sd_all`, otherwise treat *r* as a biserial correlation.
 
-#### `r robot()` Code example
+> Summary: this line creates a variable called `d_r` that contains values of *d* converted from *r*. Where we have the relevant information we estimate *d* treating *r* as a standard correlation, otherwise we treat *r* as a biserial correlation. 
 
-If we wanted a model that predicts **aggress** from **caunts_cent**, **vid_game_cent** and their interaction we could specify this as:
-
-```{r, eval= F}
-aggress ~ caunts_cent + vid_game_cent + caunts_cent:vid_game_cent
+```{r, eval = F}
+g = ifelse(is.na(g), metahelpr::d_to_g(n = n_total, d = d_r), g), 
+g = ifelse(high_disorganization_is == "Low score", -g, g)
 ```
 
-In this case, the interaction term is specified using [caunts_cent:vid_game_cent](.alt). There is also a shorthand for adding all main effects and their interactions, which is:
+This first line changes the existing variable `g` to insert the values of *d* we have calculated converted to Hedges' *g*. Again we `ifelse()` to set different rules depending on whether we already have a value of *g* in the data. The condition we set is `is.na(g)` which means "if the variable `g` is an `NA`". In other words "is the value for `g` missing?". We then tell `r rproj()` that when this condition is met (i.e. when `g` is missing), use the function `d_to_g()` to calculate *g* based on the value of `d_r` (calculated in the line above) and the total sample size (calculated earlier as `n_total`)
 
-```{r, eval= F}
-var_1*var_2
+The second line is used to flip the direction of any effect sizes where the measure was 'organization' rather than 'disorganisation. Yet again, we use `ifelse()` and set the condition of `high_disorganization_is == "Low score"`. In other words, is the variable of the variable `high_disorganization_is` equal to `"Low score"`. When it is, we set `g` to be `-g` (i.e. we switch its sign), and when it's not we set `g` to be the existing value.
+
+> Summary: the first lines changes the existing variable `g`to insert the values of *d* we have calculated but converted to Hedges' *g*. The second line reverses the direction of the effect *if* the variable `high_disorganization_is` tells us that this effect size is from a measure of organisation (rather than disorganization).
+
+```{r, eval = FALSE}
+v_g = ifelse(is.na(v_g), 
+                 ifelse(!is.na(ptsd_diff),
+                        metahelpr::var_d_from_r(n = n_total, r = r, d = g), 
+                        metahelpr::var_d_from_r(n = n_total, r = r)),
+                 v_g)
 ```
 
-This code will introduce the main effect of [var_1]{.alt}, the main effect of [var_2]{.alt} and their interaction.
+This line changes the existing variable `v_g` to insert the variance values for the *g*s we have calculated. This uses two nested `ifelse()` statements. The first `ifelse()` sets different rules depending on whether values for the variable `v_g` are missing. When they are missing, we move into the second `ifelse()` statement, but if they are not then we use the existing values. The second `ifelse()` statement sets different rules depending on whether `ptsd_diff` has a value When it was the variance is calculated assuming *r* was a standard Pearson correlation, and when not it is calculated assuming *r* was a biserial correlation.
 
-#### `r robot()` Code example
-
-Therefore, to specify the same model as before that predicts aggress from caunts_cent, vid_game_cent and their interaction we could specify this as:
-
-```{r, eval= F}
-aggress ~ caunts_cent*vid_game_cent
-```
-
-The two methods are comparable.
-
-### `r user_visor()` Fitting a moderation model  [(2)]{.alt}
-
-To fit a model that assesses moderation we first centre the predictor and moderator, then fit a linear model using `lm()` with the centred predictor, centred moderator and the interaction of the two centred variables as predictors.
+> Summary: this code changes the existing variable `v_g`. If a value exists for `v_g` it is retained, but if it is missing it is computed in one of two ways. If a value of `ptsd_diff` exists then the variance is calculated assuming *r* was a standard Pearson correlation, and when not it is calculated assuming *r* was a biserial correlation.
 
 #### `r alien()` Alien coding challenge
 
-Use the code example, and what you have learnt so far, to fit a linear model using `lm()` to predict **aggress** from **caunts_cent**, **vid_game_cent** and their interaction. Store the model as [aggress_lm]{.alt} and use `broom::tidy()` to view the model parameters and their confidence intervals. (You can assume that the centred variables have already been created within [vids_tib]{.alt}.)
+Replace the `XXXX` symbols and try running the code!
+
+```{r get_brewin_2024g}
+brewin_2024g <- metafor::escalc(measure = "SMD",
+                vtype = "UB",
+                n1i = clinical_n,
+                n2i = control_n,
+                m1i = clinical_mean,
+                m2i = control_mean,
+                sd1i = clinical_sd,
+                sd2i = control_sd,
+                ti = t,
+                slab = author,
+                var.names = c("g", "v_g"),
+                data = brewin_2024) |> 
+  as_tibble()
+```
 
 
-```{r vid-gmc, echo = F}
-vids_tib <- vids_tib |> 
+```{r get_r_from_d, exercise = TRUE, exercise.lines = 20, exercise.setup = "get_brewin_2024g"}
+brewin_es <- brewin_2024g |> 
   dplyr::mutate(
-    dplyr::across(c(vid_game, caunts), list(cent = centre))
+    n_total = ifelse(is.na(XXXX) | is.na(XXXX),
+                     n_for_r,
+                     clinical_n + control_n),
+    ptsd_sd_all = XXXX(is.na(ptsd_sd_all),
+                       metahelpr::pooled_var(nx = clinical_n,
+                                             ny = control_n,
+                                             sdx = ptsd_sd_clin,
+                                             sdy = XXXX,
+                                             ux = ptsd_mean_clin,
+                                             uy = ptsd_mean_ctrl,
+                                             sd = T),
+                       XXXX),
+    ptsd_diff = ptsd_mean_clin - ptsd_mean_ctrl,
+    d_r = ifelse(!is.na(XXXX),
+                 metahelpr::d_from_r(delta = ptsd_diff, sx = XXXX, r = r),
+                 metahelpr::d_from_r(r = XXXX)),
+    g = ifelse(is.na(g),
+               metahelpr::d_to_g(n = XXXX, d = d_r),
+               g), 
+    g = ifelse(high_disorganization_is == XXXX, -g, g), 
+    v_g = ifelse(is.na(XXXX), 
+                 ifelse(!is.na(ptsd_diff),
+                        metahelpr::var_d_from_r(n = n_total, r = r, d = g), 
+                        metahelpr::var_d_from_r(n = n_total, r = r)),
+                 v_g)
     )
+
+brewin_es
+```
+
+```{r get_r_from_d-solution}
+brewin_es <- brewin_2024g |> 
+  dplyr::mutate(
+    n_total = ifelse(is.na(clinical_n) | is.na(control_n),
+                     n_for_r,
+                     clinical_n + control_n),
+    ptsd_sd_all = ifelse(is.na(ptsd_sd_all),
+                         metahelpr::pooled_var(nx = clinical_n,
+                                    ny = control_n,
+                                    sdx = ptsd_sd_clin,
+                                    sdy = ptsd_sd_ctrl,
+                                    ux = ptsd_mean_clin,
+                                    uy = ptsd_mean_ctrl,
+                                    sd = T),
+                         ptsd_sd_all),
+    ptsd_diff = ptsd_mean_clin-ptsd_mean_ctrl,
+    d_r = ifelse(!is.na(ptsd_diff),
+                 metahelpr::d_from_r(delta = ptsd_diff, sx = ptsd_sd_all, r = r),
+                 metahelpr::d_from_r(r = r)),
+    g = ifelse(is.na(g),
+               metahelpr::d_to_g(n = n_total, d = d_r),
+               g), 
+    g = ifelse(high_disorganization_is == "Low score", -g, g), 
+    v_g = ifelse(is.na(v_g), 
+                 ifelse(!is.na(ptsd_diff),
+                        metahelpr::var_d_from_r(n = n_total, r = r, d = g), 
+                        metahelpr::var_d_from_r(n = n_total, r = r)),
+                 v_g)
+    )
+brewin_es
 ```
 
 
-```{r vid_mod, exercise = TRUE, exercise.lines = 4, exercise.setup = "vid-gmc"}
+
+## `r user_visor()` Fitting the random effects model [(2)]{.alt} {#re}
+
+From now on we're going to use the data in [brewin_es]{.alt}, which is similar to the tibble you created in this tutorial except that I have removed some variables that we won't use.
+
+
+### `r user_visor()` Aggregating the data [(2)]{.alt} {#agg}
+
+You might have data where every study contributes only a single effect size. In which case skip this section. However, that's not the case for the data in this example. We can fit a model to the data as is, but if we want to create forest plots (more on them shortly) we will need a version of the data where we have aggregated within studies (or some other variable of interest).
+
+#### `r robot()` Code example
+
+To aggregate effect sizes within a variable we can use the `group_by()` and `summarize()` functions from `dplyr`. For example, this code
+
+```{r, eval = F}
+brewin_agg <- brewin_es |> 
+  dplyr::group_by(author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+```
+
+takes the data in `brewin_es` and then groups it by the variable `author` (which identifies the study) and creates the variables `g`, `v_g` and `n` which are the average of the original variables of the same name. In other words, if a study has three values of `g` it will occupy three rows in the original tibble, but in this new tibble it will occupy 1 row and the value of `g` will be the average of the three values of `g`.
+
+#### `r alien()` Alien coding challenge
+
+To get a feel for this execute the code below and compare `brewin_es` with `brewin_agg`.
+
+```{r ex_brewin_agg, exercise = TRUE, exercise.lines = 10}
+brewin_agg <- brewin_es |> 
+  dplyr::group_by(author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+brewin_es # view the original data
+brewin_agg # view the aggregated data
+```
+
+```{r ex_brewin_agg-solution}
+brewin_agg <- brewin_es |> 
+  dplyr::group_by(author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+brewin_es # view the original data
+brewin_agg # view the aggregated data
+```
+
+The current data are a bit more complicated than this because different measures of memory disorganization were used within some studies. The key hypothesis in this study is around how trauma memories were coded. This information is stored in the variable `foa_gp`. The aggregation we have just done loses all of the information about the type of memory coding used for a given effect size. 
+
+#### `r robot()` Code example
+
+If we want to aggregate taking the information in `foa_gp` into account we can add this variable to the `group_by()` function. The following code will aggregate effect sizes within each study, separately if they have different values of `foa_gp`. Note the only difference in this code is that we have added `foa_gp` into `group_by()` before `author`.
+
+```{r, eval = F}
+brewin_foa_agg <- brewin_es |> 
+  dplyr::group_by(foa_gp, author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+```
+
+
+
+#### `r alien()` Alien coding challenge
+
+Execute the code below and compare `brewin_es` with `brewin_agg` and `brewin_foa_agg` .
+
+```{r ex_brewin_foa_agg, exercise = TRUE, exercise.lines = 10}
+brewin_foa_agg <- brewin_es |> 
+  dplyr::group_by(foa_gp, author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+brewin_es # view the original data
+brewin_agg # view the data aggregated within study
+brewin_foa_agg # view the data aggregated within foa coding within study
+```
+
+```{r ex_brewin_foa_agg-solution}
+brewin_foa_agg <- brewin_es |> 
+  dplyr::group_by(foa_gp, author) |> 
+  dplyr::summarize(
+    g = mean(g, na.rm = T),
+    v_g = mean(v_g, na.rm = T),
+    n = mean(n_total, na.rm = T)
+  )
+brewin_es # view the original data
+brewin_agg # view the data aggregated within study
+brewin_foa_agg # view the data aggregated within foa coding within study
+```
+
+
+### `r user_visor()` One effect size per study [(2)]{.alt} {#rma}
+
+When we have a single effect size per study (as we do in [brewin_agg]{.alt}), we can use the `rma()` function from `metafor` to fit a random effects model. The function has the following form
+
+```{r, eval = F}
+my_model <- rma(yi = variable_containing_effect_sizes,
+                vi = variable_containing_effect_size_variances,
+                mods = specify_moderator_variables,
+                data = a_tibble,
+                subset = specify_a_subset_of_the_tibble)
+```
+
+There are actually many more arguments, but the ones above are the only ones we need. We will look at [moderators](#mods) later, where we'll cover the [mods]{.alt} and [subset]{.alt} arguments. For now we will fit a no frills model.
+
+#### `r robot()` Code example
+
+For a no frills model we could use this code
+
+```{r, eval = F}
+brewin_ma <- rma(yi = g, vi = v_g, data = brewin_agg)
+brewin_ma
+```
+
+which specifies the column containing effect sizes as [g]{.alt}, the column containing effect size variances as [v_g]{.alt} and the tibble containing the data as [brewin_agg]{.alt}, which is the tibble containing our aggregated data. The second line of code displays the results.
+
+
+#### `r alien()` Alien coding challenge
+
+Use the codebox below to fit a random effects model to the aggregated data in [brewin_agg]{.alt}.
+
+```{r ex_brewin_ma, exercise = TRUE, exercise.lines = 3}
 
 ```
 
-```{r vid_mod-hint-1}
-# store the model as aggress_lm:
-aggress_lm <- lm(...)
-# Now fill in the blanks within lm()
+```{r ex_brewin_ma-solution}
+brewin_ma <- rma(yi = g, vi = v_g, data = brewin_agg)
+brewin_ma
 ```
 
-```{r vid_mod-hint-2}
-# You can use either (most succinct):
-aggress_lm <- lm(aggress ~ caunts_cent*vid_game_cent, data = vids_tib)
-# or (most explicit):
-aggress_lm <- lm(aggress ~ caunts_cent + vid_game_cent + caunts_cent:vid_game_cent, data = vids_tib)
-# now display the parameters with tidy()
+
+```{r echo = F}
+brewin_ma <- rma(yi = g, vi = v_g, data = brewin_agg)
 ```
 
-```{r vid_mod-hint-3}
-# Get the parameters:
-broom::tidy(aggress_lm, conf.int = TRUE)
+
+The output contains several statistics:
+
+- An estimate of $\tau^2$: this tells us the estimate of the variability in population effect sizes (see the theory section). In this case $\hat{\tau}^2$ = `r metafor::fmtx(brewin_ma$tau2, 2)`.
+- The $I^2$ statistic is the percentage of the variability in effect sizes attributable to heterogeneity and not sampling error. Broad cut-offs of 25%, 50%, and 75% have been tentatively proposed for low, moderate, and high levels of heterogeneity [@higgins_measuring_2003], but these should not be applied thoughtlessly and context matters.  In this case $I^2$ = `r metafor::fmtx(brewin_ma$I2, 2)`%.
+- The $H^2$ statistic is, essentially, a transformed and less intuitive version of $I^2$. It varies from 1 (homogeneity) to infinity (extreme heteroscedasticity). Probably just interpret $I^2$ and forget about $H^2$
+- The $Q$ statistic tests the null hypothesis that effect sizes across studies are equal. A significant test can, therefore, be used to reject this null in favour of believing that heterogeneity exists. A non-significant test implies that heterogeneity wasn't sufficient;y large to be detected in the current sample. This test has notoriously low power, so non-significant results especially should be treated tentatively. In the current sample `r metahelpr::report_het(brewin_ma)`
+- The main part of the output is the estimate of $\theta$ (using our earlier general notation), which in this case is our estimate of the population effect size $\hat{\theta} = \hat{g}$ (remembering that we converted our *d*s to *g*s before fitting the model). We are told the estimate itself, it's confidence interval and a significance test of the null that the effect size is zero. For these data, `r metahelpr::report_pars(brewin_ma)`. 
+
+<div class="reportbox">
+  `r pencil()` **Report it!**
+
+  About $I^2$ = `r metafor::fmtx(brewin_ma$I2, 2)`% of variability in effect sizes was attributable to heterogeneity. With the caveats that this test is underpowered, the observed heterogeneity was not significantly different than zero, `r metahelpr::report_het(brewin_ma)`. Overall there was about a third of a standard deviation difference in memory disorganization scores between clinical and control groups, `r metahelpr::report_pars(brewin_ma)`. If we assume that this sample is one of the 95% that generates a confidence interval that captures the population value then this differences could be as small as `r metafor::fmtx(brewin_ma$ci.lb, 2)` standard deviations and as large as `r metafor::fmtx(brewin_ma$ci.ub, 2)` standard deviations. 
+  
+</div>
+
+
+
+### `r user_visor()` Multiple effect sizes per study [(2)]{.alt} {#rmamv}
+
+When we have multiple effect size per study (as we do in [brewin_es]{.alt}), we use the `rma.mv()` function from `metafor` to fit a random effects model. The function has the following form
+
+```{r, eval = F}
+my_model <- rma.mv(yi = variable_containing_effect_sizes,
+                   V = variable_containing_effect_size_variances,
+                   random = ~1|variable_identifying_study/variable_identifying_effect_size
+                   mods = specify_moderator_variables,
+                   data = a_tibble,
+                   subset = specify_a_subset_of_the_tibble,
+                   method = "REML")
 ```
 
-```{r vid_mod-hint-4}
-aggress_lm <- lm(aggress ~ caunts_cent*vid_game_cent, data = vids_tib)
-broom::tidy(aggress_lm, conf.int = TRUE)
+The function is similar to `rma()` except that the effect size variance argument is named `V` rather than `vi`. One important difference is that we have to specify the nesting of the effect sizes within studies using the `random` argument. Essentially you need a numeric variable in the data that identifies each 'cluster' within which effect sizes are nested. Usually the 'cluster' is the study or article, but it could be something else. You also need a variable that uniquely identifies each effect size. In the current data `author` identifies each study and `es_id` identifies each effect size.
+
+#### `r alien()` Alien coding challenge
+
+Execute the following code, which selects the variables in the data that identify the studies, the effect size id, and the effect size itself. We view just the first 20 rows of the data.
+
+```{r view_id_vars, exercise = TRUE, exercise.lines = 8}
+brewin_es |> 
+  dplyr::select(author, es_id, g) |> 
+  head(20)
 ```
 
-```{r vid_mod-solution}
-aggress_lm <- lm(aggress ~ caunts_cent*vid_game_cent, data = vids_tib)
-broom::tidy(aggress_lm, conf.int = TRUE)
+You can see that, for example, the study by Halligan et al. (2003) contributed 9 effect sizes to the data. These are identified both by the variable `author` (which tells us that these 9 effect sizes are clustered within the same study), and the variable `es_id` (which uniquely identifies the particular effect size).
+
+To specify this nested structure we would, therefore, use
+
+```{r eval = F}
+random = ~1|author/es_id
+```
+
+Within `rma.mv()` we can specify whether to estimate the model parameters using the default of restricted maximum likelihood estimation ([method = "ML"]{.alt}) or full maximum likelihood, which is necessary if you want to compare nested models [method = "ML"]{.alt}. As with `rma()` there are many more arguments that we won't cover in this tutorial.
+
+
+#### `r robot()` Code example
+
+For a no frills model when each study contributes more than one effect size we could use this code
+
+```{r, eval = F}
+brewin_mamv <- rma.mv(yi = g, V = v_g, random = ~1|author/es_id, data = brewin_es)
+brewin_mamv
+```
+
+which specifies the column containing effect sizes as [g]{.alt}, the column containing effect size variances as [v_g]{.alt}, the structure of the nesting of effect sizes as [~1|author/es_id]{.alt} and the tibble containing the data as [brewin_es]{.alt}, which is the tibble containing our aggregated data. The second line of code displays the results.
+
+
+#### `r alien()` Alien coding challenge
+
+Use the codebox below to fit a random effects model to the aggregated data in [brewin_agg]{.alt}.
+
+```{r ex_brewin_mamv, exercise = TRUE, exercise.lines = 3}
+
+```
+
+```{r ex_brewin_mamv-solution}
+brewin_mamv <- rma.mv(yi = g, V = v_g, random = ~1|author/es_id, data = brewin_es)
+brewin_mamv
 ```
 
 ```{r, echo = F}
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-    dplyr::across(c(vid_game, caunts), list(cent = centre))
-    )
-agg_lm <- lm(aggress ~ caunts_cent*vid_game_cent, data = vids_tib)
-agg_tidy <-  broom::tidy(agg_lm, conf.int = TRUE)
+brewin_mamv <- rma.mv(yi = g, V = v_g, random = ~1|author/es_id, data = brewin_es)
 ```
 
-Moderation is shown up by a significant interaction effect, and that's what we've got here, $\hat{b}$ = `r report_pars(agg_tidy, row = 4, digits = 3)` indicating that the relationship between the time spent gaming and aggression is moderated by callous traits. (Remember that [1.221295e-04]{.adj} is $1.22 \times 10^{-4}$ or 0.000122.)
+
+The output contains several statistics:
+
+- An estimate of $\sigma_b^2$: this tells us the estimate of the variability in population effect sizes (see the theory section). In this case $\hat{\sigma}_b^2$ = `r metafor::fmtx(brewin_mamv$sigma2[1], 3)`.
+- An estimate of $\sigma_w^2$: this tells us the estimate of the variability in effect sizes within studies (see the theory section). In this case $\hat{\sigma}_w^2$ = `r metafor::fmtx(brewin_mamv$sigma2[2], 3)`.
+- The $Q$ statistic tests the null hypothesis that effect sizes across studies are equal. A significant test can, therefore, be used to reject this null in favour of believing that heterogeneity exists. A non-significant test implies that heterogeneity wasn't sufficiently large to be detected in the current sample. This test has notoriously low power, so non-significant results especially should be treated tentatively. In the current sample `r metahelpr::report_het(brewin_mamv)`
+- The main part of the output is the estimate of $\theta$ (using our earlier general notation), which in this case is our estimate of the population effect size $\hat{\theta} = \hat{g}$ (remembering that we converted our *d*s to *g*s before fitting the model). We are told the estimate itself, it's confidence interval and a significance test of the null that the effect size is zero. For these data, `r metahelpr::report_pars(brewin_mamv)`. 
+
+<div class="reportbox">
+  `r pencil()` **Report it!**
+  
+  For the overall model ignoring predictors, the between study variability was $\hat{\sigma}_b^2$ = `r metafor::fmtx(brewin_mamv$sigma2[1], 3)` and the within study variability was $\hat{\sigma}_w^2$ = `r metafor::fmtx(brewin_mamv$sigma2[2], 3)`. With the caveats that this test is underpowered, the observed heterogeneity was not significantly different than zero, `r metahelpr::report_het(brewin_mamv)`. Overall there was about a third of a standard deviation difference in memory disorganization scores between clinical and control groups, `r metahelpr::report_pars(brewin_mamv)`. If we assume that this sample is one of the 95% that generates a confidence interval that captures the population value then disorganization in PTSD groups could be anything between `r metafor::fmtx(brewin_mamv$ci.lb, 2)` and `r metafor::fmtx(brewin_mamv$ci.ub, 2)` standard deviations higher than in control groups.
+</div>
+
+
+It also possible to fir the model using robust estimates of the variances and covariances by placing the model into `metafor::robust()`. This function takes the form
+
+```{r, eval = F}
+metafor::robust(my_model, cluster = variable_identifying_study)
+```
+
+Basically, you place your model into the function and specify the variable that identifies the 'clusters' in the data (in the current context our clusters are the different studies included in the meta-analysis, which are identified by the variable `author`).
+
+#### `r robot()` Code example
+
+To get a robust version of the model we just created we would execute
+
+```{r, eval = F}
+metafor::robust(brewin_mamv, cluster = author)
+```
+
+#### `r alien()` Alien coding challenge
+
+Use the codebox below to fit and view a robust version of the model [brewin_mamv]{.alt}, store this model as [brewin_rob]{.alt}.
+
+```{r ex_brewin_rob-setup}
+brewin_mamv <- rma.mv(yi = g, V = v_g, random = ~1|author/es_id, data = brewin_es)
+```
+
+
+```{r ex_brewin_rob, exercise = TRUE, exercise.lines = 3}
+
+```
+
+```{r ex_brewin_rob-solution}
+brewin_rob <- metafor::robust(brewin_mamv, cluster = author)
+brewin_rob
+```
+
+```{r, echo = F}
+brewin_rob <- metafor::robust(brewin_mamv, cluster = author)
+```
+
+Compare the output to the non-robust model. The thing that changes is the standard error, which has changed from `r metafor::fmtx(brewin_mamv$se, 4)` to `r metafor::fmtx(brewin_rob$se, 4)`. This has a knock-on effect on the confidence interval and the test statistic used:
+
+- Non-robust results: `r metahelpr::report_pars(brewin_mamv)`
+- Robust results: `r metahelpr::report_pars(brewin_rob)`
+
+## `r user_visor()` Forest plots [(2)]{.alt} {#forest}
+
+A forest plot is a plot of each effect size and its confidence interval (usually) stacked vertically. The box displaying the effect size is scaled to reflect the precision of the effect size. Larger boxes indicate studies with greater sample sizes (and hence greater precision). In a meta-analysis studies based on larger samples (i.e. those with the least sampling error) are given more weight than smaller (less precise) studies. Therefore, the size of the box tells you something about the weight of effect size within the meta-analysis.  
+
+The `metafor` package contains a very flexible system for creating forest plots (and other plots). At the core of this system is the `forest()` function. With flexibility comes a world of pain for trying to explain it all. So, to avoid that pain we'll look only at some of the key features of the `forest()` function. If you want to do anything more complicated then see some of the excellent examples at [https://www.metafor-project.org/doku.php/plots](https://www.metafor-project.org/doku.php/plots).
+
+The `forest()` function takes the following form (with only a fraction of the numerous arguments listed).
+
+```{r eval = F}
+forest(my_model,
+       slab = variable_identifying_unique studies,
+       header = "Name for the list of studies",
+       cex = numeric_value,
+       cex.lab = numeric_value,
+       xlab = "label for x-axis",
+       xlim = c(lower_limit, upper_limit),
+       at = seq(start, stop, step),
+       shade = TRUE,
+       mlab = metahelpr::forest_add_het(model = my_model))
+```
+
+Essentially you put your model created with `rma()` into `forest` and that's it unless you want to specify some options. So a basic forest plot for `brewin_ma` is created with `forest(brewin_ma)`. It's as simple as that. However, you will probably want to change some things. The best way to see what the options do is to change them and look at the effect.
+
+#### `r alien()` Alien coding challenge
+
+To see what the different arguments do, use the code box to work through the following steps to build up the code like above. At each step add the suggested argument in a new line (remember to put a comma between the arguments), [execute the code]{.alt} and see what effect it has on the plot. If you get stuck, the hints show the correct code for each step.
+
+1. Plot a default plot with `forest(brewin_ma)`
+2. By default the studies are listed as "Study 1", "Study 2" etc. Let's label them using the `author` variable from the data by adding the argument `slab = author`. The left hand column should now show the study names.
+3. We can add a heading to the column with the study names by adding `header = "Study name"` (you can change the text in quotes to whatever you want your heading to be).
+4. Everything looks a bit small. We can change this by scaling everything using `cex`. This is definitely an argument to play around with until everything looks how you want it. Try adding `cex = 0.6` but try other values to get a feel for what changing the value does.
+5. The text below the *x*-axis (which says 'observed outcome') looks big. We can scale this separately using `cex.lab`. Try setting this to `cex.lab = 1`, but again try different values and note the effect.
+6. The *x*-label of 'observed outcome' isn't informative, so we can set this using `xlab = "Memory disorganization"` (again change the text in quotes to what you want it to be).
+7. The gap between the left and right columns and the plot in the middle can be reduced or expanded by setting the limits of the *x*-axis. The effect size data range from -1 to 2, so we could set limits of say -2.5 and 2.5 to see if this reduces the white space. Add the argument `xlim = c(-2.5, 2.5)` to do this (and again try different values and observe the effect when you execute the code).
+8. We can set the intervals on the *x*-axis using `at`. The effect size data range from -1 to 2, so an interval of 0.5 might be good. If we include `at = seq(-1, 2, 0.5)` this will create ticke between -1 and 2 at intervals of 0.5 (that is, -1, -0.5, 0, 0.5, 1, 1.5, and 2).
+9. If we include `shade = TRUE` alternate lines of the plot will be shaded which can make it easier to see which data relates to which study.
+10. Finally, we can add a label at the bottom of the plot with `mlab`. This tutorial comes with a helper function (`forest_add_het()`) that adds heterogeneity statistics from a model to a forest plot. To add the heterogeneity statistics for our model ([brewin_ma]{.alt}) we need to include `mlab = metahelpr::forest_add_het(model = brewin_ma)`.
+
+```{r forest-setup}
+brewin_ma <- rma(yi = g, vi = v_g, data = brewin_agg)
+```
+
+```{r forest, exercise = TRUE, exercise.lines = 10}
+# step 1:
+forest(brewin_ma)
+```
+
+```{r forest-hint-1}
+# step 2:
+forest(brewin_ma,
+       slab = author)
+```
+
+```{r forest-hint-2}
+# step 3:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name")
+```
+
+```{r forest-hint-3}
+# step 4:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6)
+```
+
+```{r forest-hint-4}
+# step 5:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1)
+```
+
+```{r forest-hint-5}
+# step 6:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1, 
+       xlab = "Memory disorganization")
+```
+
+```{r forest-hint-6}
+# step 7:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1, 
+       xlab = "Memory disorganization",
+       xlim = c(-2.5, 2.5))
+```
+
+```{r forest-hint-7}
+# step 8:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1, 
+       xlab = "Memory disorganization",
+       xlim = c(-2.5, 2.5),
+       at = seq(-1, 2, 0.5))
+```
+
+```{r forest-hint-8}
+# step 9:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1, 
+       xlab = "Memory disorganization",
+       xlim = c(-2.5, 2.5),
+       at = seq(-1, 2, 0.5),
+       shade = TRUE)
+```
+
+```{r forest-hint-9}
+# step 10:
+forest(brewin_ma,
+       slab = author,
+       header = "Study name",
+       cex = 0.6,
+       cex.lab = 1, 
+       xlab = "Memory disorganization",
+       xlim = c(-2.5, 2.5),
+       at = seq(-1, 2, 0.5),
+       shade = TRUE,
+       mlab = metahelpr::forest_add_het(model = brewin_ma))
+```
+       
+## `r user_visor()` Moderators (meta-regression) [(2)]{.alt} {#mods}
+
+### `r user_visor()` The moderation model [(2)]{.alt} {#modmodel}
+
+We saw in the [theory section](#theory) that you can add predictors to the model to see the extent to which effect sizes are predicted by characteristics associated with them. This is sometimes referred to as [meta-regression]{.alt} but I don't like this term because, although I can see why its used, it implies that a different model is being fitted when moderators are included to the model that estimates only the overall effect size (i.e. the intercept). In fact, the underlying model is the same all that changes is whether you include only the intercept (standard meta-analysis) or include predictors (moderator analysis/meta-regression). So, make me happy and don't refer to this as meta-regression.
+
+In the current example there was a specific prediction that the way in which trauma memories were coded would predict the size of the effect observed. The variable `foa_gp` represents the way in which memories were coded for disorganization see the [study description](#study). As a brief reminder there were four ways in which memories were coded:
+
+- [FOA (Detailed)]{.alt}: uses the FOA methodology with a detailed coding scheme
+- [FOA (Global)]{.alt}: uses the FOA methodology but with global ratings coding scheme
+- [Not FOA: (Disorganisation)]{.alt}: does not use the FOA methodology and uses measures of memory disorganisation
+- [Not FOA (Organisation)]{.alt}: does not use the FOA methodology and uses measures of memory organisation (the direction of these effects had to be reversed before the meta-analysis)
+
+The specific hypothesis was that the **FOA (Detailed)** method would generate larger effects than all other methods. Given we want to use a single category as a reference we can use standard dummy coding to fit the following model:
+
+$$
+\begin{aligned}
+d_{jk} &= \theta + \beta_1(\text{FOA}_\text{Detailed} \text{ vs. FOA}_\text{Global})_k  + \beta_2(\text{FOA}_\text{Detailed} \text{ vs. Not FOA}_\text{Disorganisation})_k + \\
+&\quad \beta_3(\text{FOA}_\text{Detailed} \text{ vs. Not FOA}_\text{Organisation})_k + \zeta_{(2)jk} + \zeta_{(3)k} + \varepsilon_{jk} \\
+\varepsilon &\sim N(0, \sigma^2) \\
+\zeta_{(2)} &\sim N(0, \sigma_w^2) \\
+\zeta_{(3)} &\sim N(0, \sigma_b^2) \\
+\end{aligned}
+$$
+
+In the data there are three variables representing these dummy variables
+
+- `global_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the FOA (global) method.
+- `dis_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the not FOA (disorganisation) method.
+- `org_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the not FOA (organisation) method.
+
+To include these predictors we assign them to the model as a formula using the `mods` argument of the `rma()` and `rma.mv()` functions. If you are familiar with the `lm()` function, then it's your lucky day because we use the same syntax. That is, if you want to add a single moderator the general syntax is (replacing `moderator_1` and `moderator_2` with the names of your variables):
+
+```{r, eval = F}
+mods = ~moderator_1
+```
+
+For two moderators with no interaction:
+
+```{r, eval = F}
+mods = ~moderator_1 + moderator_2
+```
+
+For two moderators with the interaction between them
+
+```{r, eval = F}
+mods = ~moderator_1*moderator_2
+```
+
+or equivalently
+
+```{r, eval = F}
+mods = ~moderator_1 + moderator_2 + moderator_1:moderator_2
+```
+
+and so on. We want to add in the variables `global_vs_detail`, `dis_vs_detail` and `org_vs_detail` so the `mods` argument will be
+
+```{r, eval = F}
+mods = ~global_vs_detail + dis_vs_detail + org_vs_detail
+```
+
+
+#### `r robot()` Code example
+
+To add these three moderators to our model we would take the code we used to fit the model without the moderators:
+
+```{r, eval = F}
+brewin_mod <- rma.mv(yi = g,
+                     V = v_g,
+                     random = ~1|author/es_id, data = brewin_es)
+```
+
+and assign a formula indicating how the moderators should be included to the `mods` argument:
+
+```{r, eval = F}
+brewin_mod <- rma.mv(yi = g,
+                     V = v_g,
+                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     random = ~1|author/es_id, data = brewin_es)
+```
+
+As before, we get a robust version of this model by passing it into `robust` and specifying the variable representing the clusters (in this case studies):
+
+```{r, eval = F}
+brewin_rob <- robust(brewin_mod, cluster = author)
+```
+
+
+#### `r alien()` Alien coding challenge
+
+Use the code box to fit a robust model with moderators and view the results.
+
+```{r mods, exercise = TRUE, exercise.lines = 4}
+
+```
+
+```{r mods-hint-1}
+# fit the model with moderators
+brewin_mod <- rma.mv(yi = g,
+                     V = v_g,
+                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     random = ~1|author/es_id, data = brewin_es)
+# Now get the robust model
+```
+
+```{r mods-hint-2}
+# get the robust model
+brewin_rob <- robust(brewin_mod, cluster = author)
+
+# Now view the model
+```
+
+```{r mods-solution}
+# put it all together
+
+# fit the model with moderators
+brewin_mod <- rma.mv(yi = g,
+                     V = v_g,
+                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     random = ~1|author/es_id, data = brewin_es)
+# get the robust model
+brewin_rob <- robust(brewin_mod, cluster = author)
+# view the model
+brewin_rob
+```
+
+
+```{r}
+brewin_mod <- rma.mv(yi = g,
+                     V = v_g,
+                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     random = ~1|author/es_id, data = brewin_es)
+brewin_rob <- robust(brewin_mod, cluster = author)
+```
+
+
+<div class="reportbox">
+  `r pencil()` **Report it!**
+
+The classification of effect sizes was dummy coded such that each category of effect size was compared to ones from FOA studies that quantified measures that used detailed coding. In the model including these dummy variables the between study variability was $\hat{\sigma}_b^2$ = `r metafor::fmtx(brewin_rob$sigma2[1], 3)` and the within study variability was $\hat{\sigma}_w^2$ = `r metafor::fmtx(brewin_rob$sigma2[2], 3)`. The observed heterogeneity was significantly different from zero, `r metahelpr::report_het(brewin_rob)`.
+
+The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. The parameter estimates indicated that compared to effect sizes relating to FOA studies that use detailed coding, effect sizes were (1) significantly larger in FOA studies that use global ratings, `r metahelpr::report_pars(brewin_rob, row = 2)`; (2) significantly smaller in not FOA studies that measured organisation, `r metahelpr::report_pars(brewin_rob, row = 3)`; and (3) not significantly different to not FOA studies that measured disorganisation, `r metahelpr::report_pars(brewin_rob, row = 4)`.
+</div>
+
+### `r user_visor()` Subgroup analysis [(2)]{.alt} {#subgroup}
+
+The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. It is common when this is true for a categorical moderator to run individual meta-analysis within each category of the moderator. In this case this would mean running four meta-analyses, one for each category of memory coding. We can do this using the `subgroup` argument of the `rma()` and `rma.mv()` functions. We use this argument by assigning a logical argument to it. For example, to fit a meta-analysis only using the effect sizes that used detailed FOA methodology, we would include:
+
+```{r, eval = F}
+subset = (foa_grp == "FOA (Detailed)")
+```
+
+The stuff in parenthesis is a logical argument that says 'include the effect size of the value of the variable `foa_gp` exactly matches the text string ["FOA (Detailed)"]{.alt}. You have to make sure that your text string *exactly* matches the label of the group.
+
+#### `r robot()` Code example
+
+To add fit a model only to effect sizes relating to detailed FOA coding methods we'd use
+
+```{r, eval = F}
+foa_detailed <- rma.mv(yi = g,
+                     V = v_g,
+                     subset = (foa_gp == "FOA (Detailed)"),
+                     random = ~1|author/es_id, data = brewin_es)
+```
+
+#### `r alien()` Alien coding challenge
+
+Use the code box to fit a robust model with moderators and view the results.
+
+```{r foa_detailed, exercise = TRUE, exercise.lines = 5}
+
+```
+
+```{r foa_detailed-solution}
+foa_detailed <- rma.mv(yi = g,
+                     V = v_g,
+                     subset = (foa_gp == "FOA (Detailed)"),
+                     random = ~1|author/es_id, data = brewin_es)
+foa_detailed
+```
+
+Obviously it's fairly tedious fitting separate models, which is why I have written a helper function (`metahelpr::get_mas()`) that fits models to individual categories and tabulates the results. It may or may not work because I'm not that good at writing functions. You're welcome. This function takes the general form 
+
+```{r eval = F}
+metahelpr::get_mas(tibble = name_of_your_tibble,
+                   predictor = name_of_the_categorical_variable,
+                   es = name_of_the_variable_containing_effect_sizes,
+                   var_es = name_of_the_variable_containing_effect_size_variances,
+                   es_id = name_of_the_variable_containing_effect_size_identifier, # optional
+                   study_id = name_of_the_variable_containing_cluster_identifier, # optional
+                   digits = number_of_decimal_places_to_use_in_table (default is 2),
+                   p_digits = number_of_decimal_places_to_use_for_p_values (default is 3),
+                   summary = TRUE or FALSE
+)
+```
+
+Essentially, you put into the function the name of your tibble, the name of the variable you want the subgroup analysis for, and the names of the variables containing the effect sizes and their variances.
+
+- If you specify variables for `es_id` and `study_id` then the function fits the models with `rma.mv()` otherwise `rma()` is used.
+- By default a summary table is returned `summary = TRUE`, but if you'd rather have a tibble containing the data for each group, the models, and each models coefficients then use `summary = FALSE`. Changing this default is useful only if you want access to specific parts of the models.
 
 <div class="tip">
-  `r cat_space()` **Tip: rounding values in tables**
+  `r cat_space()` **Tip**
 
-Remember that you can round numeric values in tables by piping the table into `kable()`. For example, if we want to round the numbers in the object created by `broom::tidy(aggress_lm, conf.int = T)` to three decimal places, we could use:
-
-```{r eval = FALSE, class.source = '.panel_alt'}
-broom::tidy(aggress_lm, conf.int = TRUE) |> 
-  knitr::kable(digits = 3)
-```
-
+  There is also a function called `get_mod_mas()` which has the same arguments as `get_mas()` but also has a `moderator` argument where you can specify a single predictor variable.
 </div>
-
-
-### `r user_astronaut()` Robust moderation models  [(3)]{.alt}
-
-Use what you have learnt before to fit a robust version of the model by putting it into the `model_parameters()` function (see **discovr_08**). Use HC4 standard errors and print to three decimal places.
 
 #### `r alien()` Alien coding challenge
 
-```{r, aggress_lm}
-vids_tib <- vids_tib |> 
-  dplyr::mutate(
-    dplyr::across(c(vid_game, caunts), list(cent = centre))
-    )
-aggress_lm <- lm(aggress ~ caunts_cent*vid_game_cent, data = vids_tib)
+Execute the code below to produce a table of results for the subgroup analysis of the effect of the type of methodology used to code memories.
+
+```{r subgroups, exercise = TRUE, exercise.lines = 10}
+mod_tbl <- metahelpr::get_mas(tibble = brewin_es,
+                   predictor = foa_gp,
+                   es = g,
+                   var_es = v_g,
+                   es_id = es_id,
+                   study_id = author)
+mod_tbl
 ```
 
+<div class="tip">
+  `r cat_space()` **Tip**
 
-```{r vid_mod_rob, exercise = TRUE, exercise.lines = 4, exercise.setup = "aggress_lm"}
+  If working in `quarto`, pipe the output of `get_mas` into `knitr::kable` to get a nicely formatted table and you can add styling and captions in the usual way.
 
+  ```{r, eval = F, class.source = '.panel_alt'}
+mod_tbl |> knitr::kable()
 ```
-
-```{r vid_mod_rob-hint-1}
-# Place the model aggress_lm into:
-parameters::model_parameters()
-# set the vcov argument to HC4
-```
-
-
-```{r vid_mod_rob-hint-3}
-# Solution:
-parameters::model_parameters(aggress_lm, vcov = "HC4") |> 
-  knitr::kable(digits = 3)
-```
-
-```{r echo = F}
-agg_rob <- parameters::model_parameters(agg_lm, vcov = "HC4")
-```
-
-
-<div class="reportbox">
-  `r pencil()` **Report**`r rproj()`
-  
-Consistent with the non-robust model, the robust model shows a significant moderation effect, $\hat{b}$ = `r report_pars(agg_rob, row = 4, digits = 3)`.
 </div>
 
-
- 
-### `r user_visor()` Simple slopes and the Johnson-Neyman interval  [(2)]{.alt}
-
-To interpret the moderation effect we examine the simple slopes and Johnson-Neyman interval. We can obtain both of these using the `sim_slopes()` function from the `interactions` package. 
+You might sometimes want to specify a forest plot that is split by groups too. Again, I've got your back (well, assuming my dodgy functions work). This package also has a function called `metahelpr::forest_subgroups()`, which attempts to create a forest plot with effect sizes grouped by a categorical variable.
 
 #### `r robot()` Code example
 
-This function takes the general form:
+For the current data we'd use this code.
 
-```{r, eval = F}
-interactions::sim_slopes(
-  my_model,
-  pred = name_of_predictor,
-  modx = name_of_moderator,
-  jnplot = FALSE,
-  jnalpha = 0.05,
-  robust = FALSE,
-  digits = 2,
-  confint = FALSE,
-  ci.width = 0.95
-)
+```{r eval = F}
+metahelpr::forest_subgroups(tibble = brewin_foa_agg,
+                 es = g,
+                 var_es = v_g,
+                 groups = foa_gp,
+                 slab = author,
+                 xlim = c(-2.5, 2.5),
+                 at = seq(-1, 2.5, 0.5),
+                 author_lab = "Study",
+                 cex = 0.5,
+                 cex.lab = 1,
+                 xlab = "Memory disorganization",
+                 shade = T)
 ```
 
-Within the function you'd replace [my_model]{.alt} with the name of the model you created (in our case [aggress_lm]{.alt}), [name_of_predictor]{.alt} with the variable name for the predictor (in our case **vid_game_cent**), and [name_of_moderator]{.alt} with the variable name for the moderator (in our case **caunts_cent**). The arguments [jnplot]{.alt} and [jnalpha]{.alt} determine whether to plot the Johnson-Neyman interval (by default it doesn't) and what alpha level to use when calculating it (by default 0.05, which is fine so usually we can leave this argument out). To get confidence intervals for the simple slopes we'd need to include [confint = TRUE]{.alt} and we can override the default of a 95% confidence interval using [ci.width]{.alt} (although we'd usually use the default). We can also fit a robust model by setting [vcov = TRUE]{.alt}, which will use HC3 robust standard errors, or you can specify an alternative sandwich estimator, for example [robust = "HC4"]{.alt}.
+The first four arguments require you to specify the data (`tibble = brewin_es`), the variable containing the effect sizes (`es = g`), the variable containing the effect size variances (`var_es = v_g`), the variable that you want to use to group effect sizes (`groups = foa_gp`) and the variable you want to use to label the studies (`slab = author`). All the other options allow you to feed values into the `forest()` function so see the section on [forest plots](#forest) for an explanation.
+
 
 #### `r alien()` Alien coding challenge
 
-Using the code example, try to fit a simple slopes model with 95% confidence intervals that uses robust standard errors (HC3):
+The code below and play about with the arguments from `header` to `shade` to style the plot. Note I've used the data in `brewin_foa_agg` so that each study contributes a maximum of one effect size to each memory coding group on the plot. For example, Jones et al. (2007) contributes 9 effect sizes to *FOA detailed* and 3 to *FOA global* but in `brewin_foa_agg` these have been averaged so that we plot a single effect for each of those categories for Jones et al. (2007).
 
-```{r vid_mod_ss, exercise = TRUE, exercise.lines = 9, exercise.setup = "aggress_lm"}
+Change the data to `brewin_es` (where effect sizes have not been aggregated) and see the difference.
 
-```
-
-```{r vid_mod_ss-hint-1}
-# Start with the basic function:
-interactions::sim_slopes()
-# Now include the model within it (aggress_lm)
-```
-
-```{r vid_mod_ss-hint-2}
-# Include the model:
-interactions::sim_slopes(
-  aggress_lm
-  )
-# Now declare the predictor and moderator variables using pred and modx (modify the example code)
-```
-
-```{r vid_mod_ss-hint-3}
-# Declare the predictor and moderator variables using pred and modx (modify the example code)
-interactions::sim_slopes(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent
-  )
-# Now set the argument jnplot to get the Johnson-Neyman interval
-```
-
-```{r vid_mod_ss-hint-4}
-# Ask for the the Johnson-Neyman interval
-interactions::sim_slopes(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  jnplot = TRUE
-  )
-# Now ask for a robust model
-```
-
-```{r vid_mod_ss-hint-5}
-# Ask for a robust model
-interactions::sim_slopes(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  jnplot = TRUE,
-  robust = TRUE
-  )
-# Now ask for confidence intervals
-```
-
-```{r vid_mod_ss-hint-6}
-# Ask for confidence intervals (solution)
-interactions::sim_slopes(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  jnplot = TRUE,
-  robust = TRUE,
-  confint = TRUE
-  )
+```{r sub_forest, exercise = TRUE, exercise.lines = 15}
+metahelpr::forest_subgroups(tibble = brewin_foa_agg,
+                 es = g,
+                 var_es = v_g,
+                 groups = foa_gp,
+                 slab = author,
+                 header = "Study name",
+                 cex = 0.6,
+                 cex.lab = 1, 
+                 xlab = "Memory disorganization",
+                 xlim = c(-2.5, 2.5),
+                 at = seq(-1, 2, 0.5),
+                 shade = TRUE)
 ```
 
 
-The Johnson-Neyman interval output says that the boundaries of the zone of significance are $-17.10$ and $-0.72$. These are the values of the centred version of the callous-unemotional traits variable, and define regions within which the relationship between the time spent gaming and aggression is significant. We can interpret this interval using the the Johnson-Neyman plot. Note that the y-axis represents the slope of the variable **vid_game_cent**. In other words, it represents the relationship between **vid_game_cent** and **aggress** (the outcome). There is a horizontal black line on the plot where the *y*-value is 0. This shows the point at which the relationship between video gaming and aggression is zero. The values of *y* below this line are negative (meaning a negative relationship between video gaming and aggression), whereas the value of *y* above this line are positive (meaning a positive relationship between video gaming and aggression). The red zone shows the values of *y* that are not significantly different from zero. In other words, it shows the zone within which the association between video gaming and aggression is not significant. Note that this zone starts just before the value of *x* (callous traits) reaches $-20$ and ends just before it reaches 0. To be precise, it starts at $-17.10$ and ends at $-0.72$, the values of the Johnson-Neyman interval. So, the red zone shows the Johnson-Neyman interval. The blue zones represent where the relationship between video gaming and aggression is significant.
+## `r user_visor()` Writing up [(2)]{.alt}
 
-When callous traits fall below $-17.10$, the values of *y* (the relationship between gaming and aggression) are negative. In other words, for values of callous traits below $-17.10$ there is a significant negative relationship between gaming and aggression (i.e. as the time spent gaming increases, aggression decreases). As callous traits rises above $-0.72$ we move into another zone of significance, but this time *y*-values are greater than zero meaning that values of *y* (the relationship between gaming and aggression) are positive. In other words, for values of callous traits above $-0.72$ there is a significant positive relationship between gaming and aggression (i.e. as the time spent gaming increases, aggression increases also). Therefore, the Johnson-Neyman interval and plot tell us that at low levels of callous unemotional traits (below $-17.10$) there is a significant negative relationship between gaming and aggression, for low to average levels  (between $-17.10$ and $-0.72$) the relationship between gaming and aggression is not significant, and for above average levels of callous unemotional traits (above $-0.72$) there is a significant positive relationship between gaming and aggression.
+This package contains some functions that, when working in quarto or Rmarkdown will help you to automatically extract and report certain results:
 
-The simple slopes analysis reports three models: the model for time spent gaming as a predictor of aggression (1) when callous traits are low (to be precise when the value of callous traits is $-9.62$); (2) at the mean value of callous traits (because we centred callous traits its mean value is 0, as indicated in the output); and (3) when the value of callous traits is 9.62 (i.e., high). We interpret these models as we would any other linear model by looking at the value of b (called Est. in the output), and its significance.
-
-<div class="reportbox">
-  `r pencil()` **Report**`r rproj()`
-
-When callous traits are low, there is a non-significant negative relationship between time spent gaming and aggression, $\hat{b} = -0.09$, 95% CI [$-0.30$, $0.12$], $t = -0.86$, $p = 0.39$. At the mean value of callous traits, there is a significant positive relationship between time spent gaming and aggression, $\hat{b} = 0.17$, 95% CI [$0.02$, $0.32$], $t = 2.23$, $p = 0.03$. When callous traits are high, there is a significant positive relationship between time spent gaming and aggression, $\hat{b} = 0.43$, 95% CI [$0.23$, $0.63$], $t = 4.26$, $p < 0.01$.
-</div>
-
-These results tell us that the relationship between time spent playing violent video games and aggression only really emerges in people with average or greater levels of callous-unemotional traits.
-
-### `r user_astronaut()` Plotting simple slopes [(3)]{.alt}
-
-#### `r robot()` Code example
-
-We can visualise the simple slopes models using the `interactions::interact_plot()` function, which takes the general form:
+-   `report_het()`: collates information from heterogeneity tests and outputs text that summarizes the results in a format that will render nicely in quarto. Execute `?report_het` for help.
+-   `report_mod`: outputs text that reports (and renders nicely in quarto/Rmarkdown) the omnibus statistical tests from a moderation model. Execute `?report_mod` for help.
+-   `report_par_tbl`: outputs a tibble of the table of coefficients of a meta-analyses object (`rma` or `rma.mv`) created using the `metafor` package. This function will mostly be useful for models containing predictors of effect sizes (so-called meta-regression). Execute `?report_par_tbl` for help.
+-   `report_pars`: outputs text that reports (and renders nicely in quarto/Rmarkdown) the individual effects from a meta-analysis model. Execute `?report_pars` for help.
 
 
-```{r, eval = FALSE}
-interactions::interact_plot(
-  my_model,
-  pred = name_of_predictor,
-  modx = name_of_moderator,
-  interval = FALSE,
-  int.width = 0.95,
-  x.label = "label_for_x_axis",
-  y.label = "label_for_y_axis",
-  main.title = "title_for_plot"
-  legend.main = " label_for_legend"
-  )
-```
+## `r user_astronaut()` Statistical appendix [(3)]{.alt} {#appendix}
 
-We start off by putting in our model and naming the predictor and moderator just as we did in `sim_slopes()`. By default, confidence intervals are not added to the plot, but I recommend you add them by including [interval = TRUE]{.alt}, the default of 95% intervals is fine but be aware that you can override this default using [int.width]{.alt}. Finally, I have included some of the arguments that allow you to tidy up the plot by adding labels for the *x* and *y*-axis, the legend, and adding a label for the legend (i.e. the name of the moderator) to the plot.
+### Effect size calculations
 
-#### `r alien()` Alien coding challenge
-
-Try to adapt the code example to plot simple slopes for our moderation model ([aggress_lm]{.alt}). Label the *x*-axis with "Time playing video games per week (hours)", label the *y*-axis with "Predicted aggression", and label the legend with "Callous unemotional traits".
-
-
-```{r vid_mod_ss_plot, exercise = TRUE, exercise.lines = 9, exercise.setup = "aggress_lm"}
-
-```
-
-```{r vid_mod_ss_plot-hint-1}
-# Start with the basic function:
-interactions::interact_plot()
-# Now include the model within it (aggress_lm)
-```
-
-```{r vid_mod_ss_plot-hint-2}
-# Include the model:
-interactions::interact_plot(
-  aggress_lm
-  )
-# Now declare the predictor and moderator variables using pred and modx (modify the example code)
-```
-
-```{r vid_mod_ss_plot-hint-3}
-# Declare the predictor and moderator variables using pred and modx (modify the example code)
-interactions::interact_plot(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent
-  )
-# Now ask for confidence intervals
-```
-
-```{r vid_mod_ss_plot-hint-4}
-# Ask for confidence intervals
-interactions::interact_plot(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  interval = TRUE
-  )
-# Now add x- and y-axis labels
-```
-
-```{r vid_mod_ss_plot-hint-5}
-# Ask for a- and y-axis labels
-interactions::interact_plot(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  interval = TRUE,
-  x.label = "Time playing video games per week (hours)",
-  y.label = "Predicted aggression"
-  )
-# Now label the legend
-```
-
-```{r vid_mod_ss_plot-hint-6}
-# Label the legend (solution)
-interactions::interact_plot(
-  aggress_lm,
-  pred = vid_game_cent,
-  modx = caunts_cent,
-  interval = TRUE,
-  x.label = "Time playing video games per week (hours)",
-  y.label = "Predicted aggression",
-  legend.main = "Callous unemotional traits"
-  )
-```
-
-The resulting plot shows what we found from the simple slopes analysis. When callous traits are low (one standard deviation below the mean, labelled as $-1$ SD) there is a non-significant negative relationship between time spent gaming and aggression; at the mean value of callous traits (the line labelled Mean) there is small positive relationship between time spent gaming and aggression; and this relationship gets even stronger at high levels of callous traits (one standard deviation above the mean, labelled as +1 SD).
-
-## `r user_visor()` Mediation [(2)]{.alt}
-
-Whereas moderation alludes to the combined effect of two variables on an outcome, mediation refers to a situation when the relationship between a predictor variable and an outcome variable can be explained by their relationship to a third variable (the mediator). Let's look at an example. Research has shown that physical attractiveness, conscientiousness and neuroticism predict marital satisfaction. Pornography use probably doesn't: it is related to infidelity [@lambert_love_2012]. Mediation is about the variables that explain relationships like these: its unlikely that everyone who catches a glimpse of porn suddenly rushes out of their house to have an affair – presumably it leads to some kind of emotional or cognitive change that undermines the love glue that holds us and our partners together. Figure 2 shows the hypothesis that Lambert et al. tested. The relationship between pornography consumption (the predictor) and infidelity (the outcome) is mediated by (or works via) relationship commitment (the mediator). This model suggests that the relationship between pornography consumption and infidelity (labelled as path *c*) isn't a direct effect but operates though porn consumption reducing relationship commitment (labelled as path *a*) and relationship commitment affecting infidelity (labelled as path *b*). When conducting mediation analysis we therefore distinguish between the **direct effect** of the predictor on the outcome and the **indirect effect** (the effect via other variables) of the predictor on the outcome. In this example, We can partition the total effect of pornography consumption on infidelity into the direct effect, which is the relationship between them adjusting for relationship commitment, and the indirect effect, which is the effect of pornography consumption on infidelity *through* relationship commitment.
-
-<figure>
-<img src="./images/dsr2_fig_10_10_mediation_porn.png" alt="Description in main text" style="width:100%">
-<figcaption>Figure 2: Diagram of a mediation model from Lambert et al. (2012).</figcaption>
-</figure>
-
-In Lambert et al.s (2012) study the researchers measured pornography consumption on a scale from 0 (low) to 8 (high) but this variable, as you might expect, was skewed (most people had low scores) so they analysed log-transformed values (**ln_porn**). They also measured commitment to their current relationship (**commit**) on a scale from 1 (low) to 5 (high). Infidelity was measured with questions asking whether the person had committed a physical act (**phys_inf**) that they or their partner would consider to be unfaithful (0 = no, 1 = one of them would consider it unfaithful, 2 = both of them would consider it unfaithful),  and also using the number of people they had hooked up with in the previous year (**hook_ups**), which would mean during a time period in which they were in their current relationship. The actual data from Lambert et al.s study are in the tibble [infidelity_tib]{.alt}.
-
-#### `r alien()` Alien coding challenge
-
-Inspect the data in [infidelity_tib]{.alt}.
-
-```{r infidelity_tib, exercise = TRUE, exercise.lines = 2}
-
-```
-
-```{r infidelity_tib-solution}
-infidelity_tib
-```
-
-### `r user_astronaut()` Mediation as two linear models [(3)]{.alt}
-
-Mathematically we can represent mediation as two models. The first model predicts the outcome variable (infidelity) from both the mediator (commitment) and the predictor (porn consumption). We can express this model with the following equation (we don't need an intercept), in which I use $\hat{c}$ and $\hat{b}$ to distinguish model parameters attached to different predictors rather than the usual $\hat{b}_1$ and $\hat{b}_2$. These letters map to the paths in Figure 2.
+Cohen's $\hat{d}$ [@cohen_statistical_1988] is estimated using the number of participants in each group ($n_1$ and $n_2$), the mean score for each group ($\overline{X}_1$ and $\overline{X}_2$) and the standard deviation for each group ($s_1$ and $s_2$):
 
 $$
-\text{infidelity}_i= \hat{c}\text{porn} +\hat{b}\text{commitment} + e_i
+\begin{aligned}
+\hat{d} &= \frac{\overline{X}_1-\overline{X}_2}{\sqrt{\frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1 + n_2 -2}}}
+\end{aligned}
 $$
 
-The second model predicts the mediator variable (commitment) from the predictor (porn consumption). Again, we can express this as a standard linear model in which $\hat{a}$ denote the parameter estimate for porn as predictor of commitment (as in Figure 2).
+The sampling variance of $d$ is
 
 $$
-\text{commitment}_i= \hat{a}\text{porn} + e_i
+SE_d = \sqrt{\frac{n_1+n_2}{n_1n_2} + \frac{\hat{d}^2}{2(n_1+n_2)}}.
 $$
-We can use these models to express the direct and indirect effects in terms of the model parameters that I have denoted as $\hat{a}$, $\hat{b}$ and $\hat{c}$ (see also Figure 2).
 
-* The parameter estimate for the direct effect is simply $\hat{c}$, the relationship between porn use and infidelity adjusting for relationship commitment. 
-* The parameter estimate for the indirect effect is $\hat{a} \times \hat{b}$, or put another way it is the effect of porn use on commitment multiplied by the effect of commitment on infidelity.
+Estimates of $d$ are biased in small samples so were adjusted using a correction $J$ [@hedges_distribution_1981],
 
-It follows that the total effect of porn use on infidelity can be expressed as the sum of the direct and indirect effects, in other words $\hat{c} + (\hat{a} \times \hat{b})$
+$$
+J = 1-\frac{3}{4(n_1+n_2-2) - 1},
+$$
 
-### `r user_visor()` Mediation using `r rproj()` [(2)]{.alt}
+such that
 
-To fit the median model were going to use the `sem()` function from `lavaan`, but it has many others! This function is the same as the more general `lavaan()` function but with a few default options set. In fact, there are more than 50 arguments/options that allow you to control a vast array of things about your model.
+$$
+\begin{aligned}
+g &= J \times d \\
+SE_g &= J \times SE_d.
+\end{aligned}
+$$
 
-#### `r robot()` Code example
+Note that the relationship between the standard error and variance is straightforward:
 
-Including only the argument we need, the `sem()` function takes the general form:
-
-```{r, eval = F}
-my_model_fit <- lavaan::sem(
-  model = my_model,
-  data = my_tibble,
-  missing = "listwise",
-  estimator = "ML")
-```
-
-A few things to note. First, the [my_model]{.alt} represents a string of text that defines the variables in the model and the relationships between them. Typically you'd define this as an object before using the function. Second, by default, the function uses listwise deletion to handle missing values (i.e. any case with missing values on the variables within the model is excluded). This practice is generally a bad idea. A better idea is to change this default to [missing = "fiml"]{.alt}, which estimates the model using something called full information maximum likelihood, which basically uses all available data for each case. This approach will work only if the estimator is one of the maximum likelihood family, which by default it is ([estimator = "ML"]{.alt}). Finally, we can use different maximum likelihood estimators to fit robust models. For example, using [estimator = "MLR"]{.alt} will use robust estimators of the standard errors (Huber-White) similar to those we use elsewhere in these tutorials.
+$$
+\begin{aligned}
+\sigma^2_g &= \sqrt{SE_g}.
+\end{aligned}
+$$
 
 
-#### `r robot()` Code example
+### Calculating the overall group variance
 
-The most challenging part is specifying the model. Essentially lavaan has a syntax for specifying models. For a mediation model with one predictor the syntax will look like this:
+Where a sample is made up of two groups there is a standard formula to calculate the whole sample variance from the means, variances and sample sizes of the two groups
 
-```{r, eval = F}
-my_mod <- 'outcome ~ c*predictor + b*mediator
-          mediator ~ a*predictor
-       
-          indirect_effect := a*b
-          total_effect := c + (a*b)
-         '
-```
+$$ 
+s^2_\text{combined} = \frac{1}{n_1 + n_2-1}\bigg[(n_1-1)s_1^2 + (n_2-1)s_2^2 + \frac{n_1n_2}{n_1 + n_2}(\bar{x}_1-\bar{x}_2)^2\bigg]
+$$
 
-We create an object (called [my_mod]{.alt} above) from a bunch of text enclosed in single quotes (don't forget the quotes …). Within the quotes we essentially write out the paths in Figure 2 and define the indirect and total effects; in short, we turn Figure 2 into a set of instructions for `lavaan`. Lets break this code down.
-
-* [outcome ~ c\*predictor + b\*mediator]{.alt}. This text expresses the model for the outcome variable (i.e. paths *b* and *c* in Figure 2). We'd replace [outcome]{.alt} with the name of the outcome variable (in this case **phys_inf**), [predictor]{.alt} with the name of the predictor variable (in this case **ln_porn**), and [mediator]{.alt} with the name of the mediator variable (in this case **commit**). So, we'd use [phys_inf ~ c\*ln_porn + b\*commit]{.alt}. The [c\*]{.alt} and [b\*]{.alt} create labels for the parameter attached to the predictor and mediator variables respectively (I've used the labels b and c to map the effects to Figure 2 but you can use different labels).
-* [mediator ~ a\*predictor]{.alt}. This text expresses how the mediator is predicted (i.e. path *a* in Figure 2). We'd replace [mediator]{.alt} with the name of the mediator variable (in this case **commit**) and [predictor]{.alt} with the name of the predictor variable (in this case **ln_porn**). So, we'd use [commit ~ a\*ln_porn]{.alt}. Again, [a\*]{.alt} creates a label for the parameter attached to the predictor variable.
-* [indirect_effect := a\*b]{.alt}. This text defines the indirect effect. On the left-hand side of the [:=]{.alt} we give the effect a name. We can use any name (without spaces) but I have chosen indirect_effect because it describes what were estimating. On the right-hand side we define the indirect effect as the value of [a]{.alt} (defined above as the parameter estimate for the predictor when it predicts the mediator) multiplied by the value of [b]{.alt} (defined above as the parameter estimate for the mediator when it predicts the outcome). It is, literally, the product of paths *a* and *b* in Figure 2.
-* [total_effect := c + (a\*b)]{.alt}. This text defines the total effect, which is the direct effect added to the indirect effect. On the left-hand side of the [:=]{.alt} we give the effect a name. Again, we can use any name (without spaces) but I have chosen total_effect because it describes what were estimating. On the right-hand side we define the total effect as the value of the direct effect (path *c* in Figure 2) added to the indirect effect (defined above as paths *a* and *b* multiplied).
-
-#### `r robot()` Code example
-
-Based on all of this nonsense, we would define the current model, which I've called [infidelity_mod]{.alt}, using this code:
-
-```{r, eval = F}
-infidelity_mod <- 'phys_inf ~ c*ln_porn + b*commit
-                   commit ~ a*ln_porn
-
-                   indirect_effect := a*b
-                   total_effect := c + (a*b)
-                   '
-```
-
-Having executed that code, we need to fit the model to the data using the `sem()` function. Using the defaults of listwise deletion of cases with missing data (boooo) and maximum likelihood estimation, the code would be:
-
-```{r, eval = F}
-infidelity_fit <- lavaan::sem(infidelity_mod, data = infidelity_tib)
-```
-
-However, were going to handle the (tiny amount of) missing data using full information maximum likelihood estimation and also estimate robust standard errors by changing the estimator to MLR:
-
-```{r, eval = F}
-infidelity_fit <- lavaan::sem(infidelity_mod,
-                              data = infidelity_tib,
-                              missing = "FIML",
-                              estimator = "MLR")
-```
-
-Once this code has been executed, the fitted model is stored in an object that I've called [infidelity_fit]{.alt} (I tend to use the suffix [_fit]{.alt} for fitted models). We can apply the `broom::glance()` function to the fitted model to view the fit statistics and apply `broom::tidy()` to it to view the model parameters.
-
-#### `r alien()` Alien coding challenge
-
-Use the sample code to fit the mediation model.
-
-```{r porn_med, exercise = TRUE, exercise.lines = 10}
-
-```
-
-```{r porn_med-solution}
-# Define the model
-infidelity_mod <- 'phys_inf ~ c*ln_porn + b*commit
-                   commit ~ a*ln_porn
-
-                   indirect_effect := a*b
-                   total_effect := c + (a*b)
-                   '
-# fit the model with FIML and robust SEs
-infidelity_fit <- lavaan::sem(infidelity_mod, data = infidelity_tib, missing = "FIML", estimator = "MLR")
-
-#summarize the model (and round values for convenience)
-broom::glance(infidelity_fit) |>  knitr::kable(digits = 3)
-broom::tidy(infidelity_fit, conf.int = TRUE) |>  knitr::kable(digits = 3)
-```
-
-```{r echo = F}
-infidelity_mod <- 'phys_inf ~ c*ln_porn + b*commit
-                   commit ~ a*ln_porn
-
-                   indirect_effect := a*b
-                   total_effect := c + (a*b)
-                   '
-infidelity_fit <- lavaan::sem(infidelity_mod, data = infidelity_tib, missing = "FIML", estimator = "MLR")
-
-porn_fit <- broom::glance(infidelity_fit)
-porn_par <- broom::tidy(infidelity_fit, conf.int = TRUE)
-```
+in which $n_1$, $\bar{x}_1$ and $s_1^2$ are the sample size, mean and standard deviation of the PTSD measure for the PTSD group and $n_2$, $\bar{x}_2$ and $s_2^2$ are the corresponding values for the control group. This equation is essentially the same as Result 1 @oneill_useful_2014. The helper function `pooled_var` applies this formula.
 
 
 
-The first output gives us the overall fit of the model and tells us some information about the fitting. For example, because missing_method says [ml]{.alt} rather than listwise we know that missing data were handled using maximum likelihood (i.e. fiml), which is also bourne out by the fact that the number of observations ([nobs]{.alt}) is the same as the number of original observations ([norig]{.alt}) and none were excluded ([nexcluded]{.alt}).
- 
-In the second output, for the effects that we assigned labels (a, b, c, indirect_effect and total_effect) these labels appear in the **label** column. The first row shows the parameter for the direct effect of infidelity predicted from pornography consumption (i.e., path *c* in Figure 2) adjusting for paths *a* and *b*. This output is interpreted just as we would interpret any linear model: pornography consumption does not quite significantly predict infidelity with the other relationships between variables in the model, $\hat{c}$ = `r report_pars(porn_par, row = 1, digits = 2)`. The next row tells us that relationship commitment significantly predicts infidelity (path *b* in Figure 2), $\hat{b}$ = `r report_pars(porn_par, row = 2, digits = 2)`.  The negative parameter estimate for commitment tells us that as commitment increases, infidelity declines (and vice versa), but the positive parameter estimate for consumption indicates that as pornography consumption increases, infidelity increases also. These relationships are in the predicted direction. The third row shows the results of the linear model of commitment predicted from pornography consumption (path *a* in Figure 10.10): pornography consumption significantly predicts relationship commitment, $\hat{a}$ = `r report_pars(porn_par, row = 3, digits = 2)`.
 
-The bottom row shows the total effect of pornography consumption on infidelity (outcome). Remember that the total effect is the effect of the predictor on the outcome when the mediator is not present in the model. When relationship commitment is not in the model, pornography consumption significantly predicts infidelity, $\hat{b}$ = `r report_pars(porn_par, row = 11, digits = 2)`. As is the case when we include relationship commitment in the model, pornography consumption has a positive relationship with infidelity (as shown by the positive *b*-value). The most important part of the output is the penultimate row because it displays the results for the indirect effect of pornography consumption on infidelity (i.e., the effect via relationship commitment). The indirect effect is not quite significant, $\hat{b}$ = `r report_pars(porn_par, row = 10, digits = 2)`, suggesting that there isn't a significant mediation effect.
-
-<div class="reportbox">
-  `r pencil()` **Report**`r rproj()`
-
-When relationship commitment was not in the model, pornography consumption had a significant positive relationship with infidelity, $\hat{b}$ = `r report_pars(porn_par, row = 11, digits = 2)`. With relationship commitment included in the model, pornography consumption did not quite significantly predict infidelity, $\hat{c}$ = `r report_pars(porn_par, row = 1, digits = 2)`. Pornography consumption significantly predicted relationship commitment, $\hat{a}$ = `r report_pars(porn_par, row = 3, digits = 2)`, and relationship commitment significantly predicted infidelity, $\hat{b}$ = `r report_pars(porn_par, row = 2, digits = 2)`. Most important, the indirect of pornography consumtpion on infidelity was not quite significant, $\hat{b}$ = `r report_pars(porn_par, row = 10, digits = 2)`, suggesting that there a non-significant mediation effect.
-</div>
-
- 
-#### `r alien()` Alien coding challenge
-
-Refit the model using a non-robust estimator.
-
-```{r porn_mod, echo = F}
-infidelity_mod <- 'phys_inf ~ c*ln_porn + b*commit
-                   commit ~ a*ln_porn
-
-                   indirect_effect := a*b
-                   total_effect := c + (a*b)
-                   '
-```
-
-
-```{r porn_med_nr, exercise = TRUE, exercise.lines = 4, exercise.setup = "porn_mod"}
-
-```
-
-```{r porn_med_nr-solution}
-# fit the model with default settings
-infidelity_fit <- lavaan::sem(infidelity_mod, data = infidelity_tib, missing = "FIML")
-
-#summarize the model (and round values for convenience)
-broom::glance(infidelity_fit) |>  knitr::kable(digits = 3)
-broom::tidy(infidelity_fit, conf.int = TRUE) |>  knitr::kable(digits = 3)
-```
-
-```{r echo = F}
-infidelity_nr <- lavaan::sem(infidelity_mod, data = infidelity_tib, missing = "FIML")
-
-nr_fit <- broom::glance(infidelity_nr)
-nr_par <- broom::tidy(infidelity_nr, conf.int = TRUE)
-```
-
-If you do the self-test and re-fit the model using a standard non-robust estimator two fun facts emerge:
-
-1. The direct effect is significant $\hat{c}$ = `r report_pars(nr_par, row = 1, digits = 2)`
-2. The indirect effect is significant, $\hat{b}$ = `r report_pars(nr_par, row = 10, digits = 2)`
-
-So, is there mediation or not? I think this highlights the inherent weakness in significance testing. Notice that no matter what estimator you use, the size of the indirect effect is $\hat{b} = 0.13$. If you use robust standard errors the confidence interval and *p*-value are pushed one side of the arbitrary 0.05 threshold, if you use standard errors based on normal theory it is prodded the other side. The effect itself doesn't change. The question to ask (in my opinion) is not whether there is mediation or not, but do we care about a mediation effect of size 0.13.
-
-
-```{r quiz_se, echo = FALSE}
-quiz(
-  question("A researcher predicted that the effect of pornography use on infidelity is stronger at low levels of relationship commitment. This hypothesis is an example of:",
-    answer("Moderation", correct = T, message  = "Well done, the hypothesis suggests that the relationship between pornography consumptionand infidelity is affected by relationship commitment, therefore it is an example of moderation."),
-    answer("Mediation", message = "The hypothesis suggests that the relationship between pornography consumption and infidelity is affected by relationship commitment, mediation would suggest that the relationship between pornography consumption and infidelity acts through relationship commitment."),
-    answer("Write me something nice.", message = "You are good enough as you are."),
-    correct = "Correct - well done!",
-    random_answer_order = TRUE,
-    allow_retry = T
-    ),
-  question("Which of the following sentences best describes mediation?",
-    answer("Mediation refers to a situation in which the relationship between a predictor variable and an outcome can be explained by their relationship to a third variable.", correct = T),
-    answer("Mediation refers to the combined effect of two variables on an outcome.", message = "This describes moderation, not mediation."),
-    answer("Mediation refers to a situation in which the relationship between a predictor variable and an outcome is significant only when the mediator is included in the model.", message = "Good effort, please try again."),
-    answer("Mediation refers to a situation in which the relationship between a predictor variable and an outcome is unaffected by their relationship to a third variable.", message = "Good effort, please try again."),
-    correct = "Correct - well done!",
-    random_answer_order = TRUE,
-    allow_retry = T
-    ),
-  question("A busy social life has been found to increase happiness in participants who are experiencing low levels of stress, but decrease happiness in participants who are experiencing high levels of stress. What is this an example of?",
-    answer("Moderation.", correct = T),
-    answer("Mediation.", message = "Good effort, please try again."),
-    answer("Neither moderation nor mediation.", message = "Good effort, please try again."),
-    answer("Toads jumping through hoops.", message = "Not so much.."),
-    correct = "Correct - well done!",
-    random_answer_order = TRUE,
-    allow_retry = T
-    )
-)
-```
-
-<div class="infobox">
-  <img src="./images/discovr_hex.png" alt="discovr package hex sticker, female space pirate with gun. Gunsmoke forms the letter R." style="width:100px;height:116px;" class = "img_left">
-  
-  **A message from Mae Jemstone:**
-  
-  Life is never simple. One minute you're whizzing through the *starway of magica* having successfully plundered a sackful of statistical misunderstandings, the next your craft has been sucked into an *oranssi doom vortex*. To model the complexity of life we need to use models that capture the ways that variables interact with each other. You now have some understanding of how to do that. You can look at how variables can affect the relationships between other variables and also how the effects of one variable on another operate through other variables. You've done great. Keep going!   
-</div>
 
 
 ## Resources {data-progressive=FALSE}
 
+### The `metafor` package
+
+- There's loads of great material on the `metafor` [project website](https://www.metafor-project.org/)
+- This section is really good on [plots and Figures](https://www.metafor-project.org/doku.php/plots) and in particular useful for doing more sophisticated forest plots
+- This is the [package website](https://wviechtb.github.io/metafor/), which contains all of the help files in a searchable and nice format! 
+
 ### Statistics
 
-* The tutorials typically follow examples described in detail in @field_discovering_2023. That book covers the theoretical side of the statistical models, and has more depth on conducting and interpreting the models in these tutorials.
-* If any of the statistical content doesn't make sense, you could try my more introductory book *An adventure in statistics* [@fieldAdventureStatisticsReality2016].
+* This is a great free online book on [doing meta-analysis using R](https://bookdown.org/MathiasHarrer/Doing_Meta_Analysis_in_R/).
 * There are free lectures and screencasts on my [YouTube channel](https://www.youtube.com/user/ProfAndyField/).
 * There are free statistical resources on my websites [www.discoveringstatistics.com](http://www.discoveringstatistics.com) and [milton-the-cat.rocks](http://milton-the-cat.rocks).
 
 ### `r rproj()`
 
 * [R for data science](http://r4ds.had.co.nz/index.html) by @wickhamDataScience2017 is an open-access book by the creator of the tidyverse (Hadley Wickham). It covers the *tidyverse* and data management.
-* [ModernDive](http://moderndive.com/index.html) is an open-access textbook on `r rproj()` and `r rstudio()`.
 * [`r rstudio()` cheat sheets](https://www.rstudio.com/resources/cheatsheets/).
 * [`r rstudio()` list of online resources](https://www.rstudio.com/online-learning/).
 

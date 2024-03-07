@@ -3,7 +3,7 @@
 #' Data from a meta-analysis looking at predictors of disorganization in trauma memories. See also [brewin_full].
 #'
 #' Background: Taylor et al. (Clinical Psychological Science, 2022) reported that in healthy participants memories of
-#' traumatic and comparison films did not differ in coherence. The lack of a group diagnosed with posttraumatic stress disorder (PTSD),
+#' traumatic and comparison films did not differ in coherence. The lack of a group diagnosed with post-traumatic stress disorder (PTSD),
 #' as well as limitations of the trauma film paradigm, mean that their design is unable to directly test predictions made by clinical theories of PTSD. Brewin and Field argued that
 #' there is convincing evidence for trauma memories in PTSD being incoherent or disorganized and conducted a meta-analysis to estimate the effect size for PTSD status and memory incoherence/disorganization.
 #' These are the raw data from this meta-analysis. Key to the analysis is the fact that there are two distinct approaches to measuring disorganization/incoherence with
@@ -50,7 +50,7 @@
 #' @source [https://osf.io/597hr/](https://osf.io/597hr/)
 #' @references
 #'
-#'  * Brewin, C. & Field, A. P. (submitted). Meta-analysis shows trauma memories in PTSD lack coherence: A response to Taylor et al. (2022). [https://osf.io/597hr/](https://osf.io/597hr/)
+#'  * Brewin, C. & Field, A. P. (2024). Meta-analysis shows trauma memories in PTSD lack coherence: A response to Taylor et al. (2022). Clinical Psychological Science. [https://osf.io/597hr/](https://osf.io/597hr/)
 #'  * Taylor, A., Zajac, R., Takarangi, M. K. T., & Garry, M. (2022). Evidence from the trauma-film paradigm that traumatic and nontraumatic memories are statistically equivalent on coherence. *Clinical Psychological Science*, 10(3), 417–429. [https://doi.org/10.1177/21677026211053312](https://doi.org/10.1177/21677026211053312)
 #'
 "brewin_2024"
@@ -61,7 +61,7 @@
 #' where the effect sizes have already been computed and some non-essential variables are omitted.
 #'
 #' Background: Taylor et al. (Clinical Psychological Science, 2022) reported that in healthy participants memories of
-#' traumatic and comparison films did not differ in coherence. The lack of a group diagnosed with posttraumatic stress disorder (PTSD),
+#' traumatic and comparison films did not differ in coherence. The lack of a group diagnosed with post-traumatic stress disorder (PTSD),
 #' as well as limitations of the trauma film paradigm, mean that their design is unable to directly test predictions made by clinical theories of PTSD. Brewin and Field argued that
 #' there is convincing evidence for trauma memories in PTSD being incoherent or disorganized and conducted a meta-analysis to estimate the effect size for PTSD status and memory incoherence/disorganization.
 #' These are the raw data from this meta-analysis. Key to the analysis is the fact that there are two distinct approaches to measuring disorganization/incoherence with
@@ -93,7 +93,7 @@
 #' @source [https://osf.io/597hr/](https://osf.io/597hr/)
 #' @references
 #'
-#'  * Brewin, C. & Field, A. P. (submitted). Meta-analysis shows trauma memories in PTSD lack coherence: A response to Taylor et al. (2022). [https://osf.io/597hr/](https://osf.io/597hr/)
+#'  * Brewin, C. & Field, A. P. (2024). Meta-analysis shows trauma memories in PTSD lack coherence: A response to Taylor et al. (2022). Clinical Psychological Science. [https://osf.io/597hr/](https://osf.io/597hr/)
 #'  * Taylor, A., Zajac, R., Takarangi, M. K. T., & Garry, M. (2022). Evidence from the trauma-film paradigm that traumatic and nontraumatic memories are statistically equivalent on coherence. *Clinical Psychological Science*, 10(3), 417–429. [https://doi.org/10.1177/21677026211053312](https://doi.org/10.1177/21677026211053312)
 #'
 "brewin_es"

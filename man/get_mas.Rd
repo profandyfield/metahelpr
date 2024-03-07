@@ -7,8 +7,10 @@
 get_mas(
   tibble,
   predictor,
-  es_id,
-  study_id,
+  es,
+  var_es,
+  es_id = NULL,
+  study_id = NULL,
   digits = 2,
   p_digits = 3,
   summary = TRUE
@@ -19,7 +21,13 @@ get_mas(
 
 \item{predictor}{Name of the categorical variable for which you want individual meta-analyses}
 
-\item{es_id}{Name of the variable that identifies unique studies}
+\item{es}{Name of the variable containing the effect sizes}
+
+\item{var_es}{Name of the variable containing the variance estimate of the effect sizes}
+
+\item{es_id}{Name of the variable that identifies unique effect sizes}
+
+\item{study_id}{Name of the variable that identifies unique studies}
 
 \item{digits}{number of decimal places to print in the output}
 

@@ -8,8 +8,10 @@ get_mod_mas(
   tibble,
   predictor,
   moderator,
-  es_id,
-  study_id,
+  es,
+  var_es,
+  es_id = NULL,
+  study_id = NULL,
   digits = 2,
   p_digits = 3,
   summary = TRUE
@@ -21,6 +23,10 @@ get_mod_mas(
 \item{predictor}{Name of the categorical variable for which you want individual meta-analyses}
 
 \item{moderator}{Name of the moderator variable to be included within each sub-analysis}
+
+\item{es}{Name of the variable containing the effect sizes}
+
+\item{var_es}{Name of the variable containing the variance estimate of the effect sizes}
 
 \item{es_id}{Name of the variable that identifies unique studies}
 
@@ -45,9 +51,13 @@ Columns show
 \item statistic: the test statistic for the estimate of the effect of the moderator
 \item p.value: the test statistic for the estimate of the effect of the moderator
 }
+
+if \code{summary = FALSE} then a tibble of the stored models is returned.
 }
 \description{
 \code{get_mod_mas()} does the same thing as \code{\link[=get_mas]{get_mas()}} but allows the user to specify a moderator/predictor within the individual meta-analyses.
-So it fits individual meta-analyses models with a moderator specified using the \code{rma.mv()} function from the \code{metafor} package
-within each level of a categorical variable. Optionally, the results can be collated into a tabulated form for printing in a quarto document.
+So it fits individual meta-analyses models with a moderator specified within each level of a categorical variable. If the \code{es_id}
+and  \code{study_id} arguments are set then the model is fit using the \code{rma.mv()} function from the \code{metafor} package,
+otherwise \code{rma()} is used. By default the results are collated into a tabulated form for printing in a quarto document, but if \code{summary = FALSE}
+a tibble of the stored models is returned.
 }
