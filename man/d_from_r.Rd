@@ -4,7 +4,7 @@
 \alias{d_from_r}
 \title{Estimate Cohen's \emph{d} based on a correlation coefficient}
 \usage{
-d_from_r(delta = NULL, sx = NULL, r = NULL)
+d_from_r(delta, sx, r)
 }
 \arguments{
 \item{delta}{the unit change required. This should be a numeric value set as the mean difference between groups on the key continuous measure, \emph{X}.}
@@ -18,15 +18,13 @@ Cohen's \emph{d}
 }
 \description{
 When the raw information is not available to compute \emph{d}, #' it may be necessary to find it indirectly.
-These conversions are approximations only. \code{d_from_r()} estimates Cohen's \emph{d} from a correlation coefficient.
-When \code{biserial = TRUE} the standard formula for converting a point biserial correlation is used, when \code{biserial = FALSE} the function
-treats the measures as continuous. In this case two options need to be set based on uses Mathur & VanderWeele (2019). First, \code{delta}
-is the unit change required and should be set to the mean difference between groups on the key continuous measure, \emph{X}). second, \code{sx} must be set as the
+These conversions are approximations only. \code{d_from_r()} estimates Cohen's \emph{d} from a correlation coefficient using uses Mathur & VanderWeele (2019).
+Two arguments are required. First, \code{delta}
+is the unit change required and should be set to the mean difference between groups on the key continuous measure, \emph{X}. Second, \code{sx} must be set as the
 standard deviation of the key continuous measure, \emph{X}). \emph{X} is the continuous variable version of the variable on which \emph{d} is computed for groups.
 For example, if \emph{d} compares anxious vs controls, \emph{X} is a continuous measure of anxiety.
 
-When \code{delta = NULL} (the default) the standard formula for converting a point biserial correlation is used, when delta is set the function
-treats the measures as continuous. In this case two options need to be set based on uses Mathur & VanderWeele (2019)
+When \code{delta} is not set, the standard formula for converting a point biserial correlation is used.
 }
 \references{
 Mathur, M. B., & VanderWeele, T. J. (2020). A simple, interpretable conversion from Pearson's correlation to Cohen's \emph{d} for continuous exposures. \emph{Epidemiology}, 31(2), e16–e17. \url{https://doi.org/10.1097/EDE.0000000000001111}

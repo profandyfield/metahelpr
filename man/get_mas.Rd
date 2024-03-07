@@ -9,8 +9,8 @@ get_mas(
   predictor,
   es,
   var_es,
-  es_id = NULL,
-  study_id = NULL,
+  es_id,
+  study_id,
   digits = 2,
   p_digits = 3,
   summary = TRUE

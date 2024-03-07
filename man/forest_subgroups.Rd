@@ -13,9 +13,15 @@ forest_subgroups(
   xlim,
   at,
   dp = 2,
-  author_lab = "Study",
+  header = "Study",
   gp_labs = NULL,
-  cex = 0.75
+  cex,
+  cex.lab,
+  xlab,
+  cex.axis,
+  shade = T,
+  atransf,
+  transf
 )
 }
 \arguments{
@@ -35,11 +41,11 @@ forest_subgroups(
 
 \item{dp}{Default is 2 decimal places.}
 
-\item{author_lab}{The text label to use at the top of the right hand side of the plot (by default, \code{author_lab = "Study"})}
-
 \item{gp_labs}{By default the factor labels are used to label the subgroups. This argument overrides this behavior if you supply a vector of labels. If you override the default behaviour bear in mind that \code{forest()} prints effect sizes from the bottom up so you need to order your labels accordingly: your first label should be for the group of studies plotted at the bottom of the plot and the last label should be for the subgroup plotted at the top of the plot.}
 
 \item{cex}{A numeric value to be used to set the \code{cex} argument within \code{forest()} (by default \code{cex = 0.75})}
+
+\item{author_lab}{The text label to use at the top of the right hand side of the plot (by default, \code{author_lab = "Study"})}
 }
 \value{
 A forest plot split by subgroups.

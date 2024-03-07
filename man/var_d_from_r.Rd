@@ -4,14 +4,14 @@
 \alias{var_d_from_r}
 \title{Estimate the sampling variance of Cohen's \emph{d} based on a correlation coefficient}
 \usage{
-var_d_from_r(n = NULL, r = NULL, d = NULL, var = T)
+var_d_from_r(n, r, d, var = T)
 }
 \arguments{
 \item{n}{the total sample size on which \emph{d} was based}
 
 \item{r}{The correlation coefficient on which \emph{d} was based}
 
-\item{d}{The estimate of \emph{d}. If \code{d = NULL} (the default) the variance us calculated assuming \emph{r} is a biserial correlation. If \code{d} is set to a value then the function
+\item{d}{The estimate of \emph{d}. If \code{d} is missing (the default) the variance us calculated assuming \emph{r} is a biserial correlation. If \emph{d} is set to a value then the function
 treats the measures as continuous based on Mathur & VanderWeele (2019).}
 
 \item{var}{When \code{TRUE} the sampling variance is returned, when \code{FALSE} the standard error is returned.}
@@ -22,14 +22,8 @@ Sampling variance or standard error of Cohen's \emph{d}
 \description{
 When the raw information is not available to compute \emph{d}, #' it may be necessary to find it indirectly.
 These conversions are approximations only. \code{\link[=d_from_r]{d_from_r()}} estimates Cohen's \emph{d} from a correlation coefficient and \code{var_d_from_r()} estimates the
-associated sampling variance.
-}
-\details{
-When \code{biserial = TRUE} the standard formula for converting a point biserial correlation is used, when \code{biserial = FALSE} the function
-treats the measures as continuous. In this case two options need to be set based on uses Mathur & VanderWeele (2019). First, \code{delta}
-is the unit change required and should be set to the mean difference between groups on the key continuous measure, \emph{X}). second, \code{sx} must be set as the
-standard deviation of the key continuous measure, \emph{X}). \emph{X} is the continuous variable version of the variable on which \emph{d} is computed for groups.
-For example, if \emph{d} compares anxious vs controls, \emph{X} is a continuous measure of anxiety.
+associated sampling variance. When a value of \code{d} is provided the function uses Mathur & VanderWeele (2019) to calculate the corresponding variance,
+otherwise (if d is missing) the equation based on the biserial correlation is used.
 }
 \references{
 Mathur, M. B., & VanderWeele, T. J. (2020). A simple, interpretable conversion from Pearson's correlation to Cohen's \emph{d} for continuous exposures. \emph{Epidemiology}, 31(2), e16–e17. \url{https://doi.org/10.1097/EDE.0000000000001111}
