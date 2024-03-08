@@ -205,7 +205,7 @@ $$
 
 #### The level 2 (study level) model
 
-At level 1 (the top level) we have the study-level model in which effect sizes for population $k$ is predicted from the true effect size and some sampling variation (at the population level).
+At level 2 (the top level) we have the study-level model in which effect sizes for population $k$ is predicted from the true effect size and some sampling variation (at the population level).
 
 
 $$
