@@ -290,7 +290,7 @@ The sampling error (denoted as $\zeta_{(2)jk}$) is assumed to be normally distri
 
 #### The level 3 (between-study level) model
 
-At level 3 (the top level) we have the study-level model in which effect sizes for population $k$ is predicted from the true effect size ($\theta$) and some sampling variation (at the population level).
+At level 3 (the top level) we have the study-level model in which effect sizes for population $k$ are predicted from the true effect size ($\theta$) and some sampling variation (at the population level).
 
 $$
 \begin{aligned}
@@ -304,7 +304,7 @@ Note that $\theta$ has no subscripts because it is fixed (it is the true effect 
 
 #### The composite model
 
-Rather than spread the model across three lines, we can equivalently write it as follows, with the bottom three lines explicitly describing the distributions of the error terms/
+Rather than spread the model across three lines, we can equivalently write it as follows, with the bottom three lines explicitly describing the distributions of the error terms.
 
 $$
 \begin{aligned}
@@ -1201,13 +1201,25 @@ d_{jk} &= \theta + \beta_1(\text{FOA}_\text{Detailed} \text{ vs. FOA}_\text{Glob
 \end{aligned}
 $$
 
-In the data there are three variables representing these dummy variables
+If we just place `foa_gp` into the model then this variable will automatically be converted to dummy variables that compare each category to the first. In fact this is what we want. 
 
-- `global_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the FOA (global) method.
-- `dis_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the not FOA (disorganisation) method.
-- `org_vs_detail`: is coded 0 for effect sizes relating to the FOA (detailed) method and 1 for effect sizes relating to the not FOA (organisation) method.
+<div class="tip">
+  `r cat_space()` **Tip**
 
-To include these predictors we assign them to the model as a formula using the `mods` argument of the `rma()` and `rma.mv()` functions. If you are familiar with the `lm()` function, then it's your lucky day because we use the same syntax. That is, if you want to add a single moderator the general syntax is (replacing `moderator_1` and `moderator_2` with the names of your variables):
+  If you want to compare each category to a category that is not currently the first category, you can use `forcats::fct_relevel()` to move the reference category to be the first level/category of your factor. The default behaviour of this function is to move the specified category to be first. Fore xample, let's imagine we wanted to compare each category to "Not FOA (Organisation)" because we perceive this to be the worst way to measure memory disorganization. We could re-order the categories of `foa_gp` to achieve this:
+
+
+```{r, eval = F, class.source = '.panel_alt'}
+brewin_es <- brewin_es |>
+  dplyr::mutate(
+    foa_gp = forcats::fct_relevel(foa_gp, "Not FOA (Organisation)")
+  )
+```
+
+This code uses `mutate()` to change the variable `foa_gp` so that it is a version of itself in which the specified factor level ("Not FOA (Organisation)") becomes the first level. Be careful of typos when you specify the factor level!
+</div>
+
+To include a predictor we assign it to the model as a formula using the `mods` argument of the `rma()` and `rma.mv()` functions. If you are familiar with the `lm()` function, then it's your lucky day because we use the same syntax. That is, if you want to add a single moderator the general syntax is (replacing `moderator_1` and `moderator_2` with the names of your variables):
 
 ```{r, eval = F}
 mods = ~moderator_1
@@ -1240,7 +1252,7 @@ mods = ~global_vs_detail + dis_vs_detail + org_vs_detail
 
 #### `r robot()` Code example
 
-To add these three moderators to our model we would take the code we used to fit the model without the moderators:
+To add `gp_foa` as a moderator to our model we would take the code we used to fit the model without the moderator:
 
 ```{r, eval = F}
 brewin_mod <- rma.mv(yi = g,
@@ -1248,12 +1260,12 @@ brewin_mod <- rma.mv(yi = g,
                      random = ~1|author/es_id, data = brewin_es)
 ```
 
-and assign a formula indicating how the moderators should be included to the `mods` argument:
+and assign a formula indicating how the moderator should be included to the `mods` argument:
 
 ```{r, eval = F}
 brewin_mod <- rma.mv(yi = g,
                      V = v_g,
-                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     mods = ~foa_gp,
                      random = ~1|author/es_id, data = brewin_es)
 ```
 
@@ -1276,7 +1288,7 @@ Use the code box to fit a robust model with moderators and view the results.
 # fit the model with moderators
 brewin_mod <- rma.mv(yi = g,
                      V = v_g,
-                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     mods = ~foa_gp,
                      random = ~1|author/es_id, data = brewin_es)
 # Now get the robust model
 ```
@@ -1294,7 +1306,7 @@ brewin_rob <- robust(brewin_mod, cluster = author)
 # fit the model with moderators
 brewin_mod <- rma.mv(yi = g,
                      V = v_g,
-                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     mods = ~foa_gp,
                      random = ~1|author/es_id, data = brewin_es)
 # get the robust model
 brewin_rob <- robust(brewin_mod, cluster = author)
@@ -1306,7 +1318,7 @@ brewin_rob
 ```{r}
 brewin_mod <- rma.mv(yi = g,
                      V = v_g,
-                     mods = ~global_vs_detail + dis_vs_detail + org_vs_detail,
+                     mods = ~foa_gp,
                      random = ~1|author/es_id, data = brewin_es)
 brewin_rob <- robust(brewin_mod, cluster = author)
 ```
@@ -1360,14 +1372,14 @@ foa_detailed
 Obviously it's fairly tedious fitting separate models, which is why I have written a helper function (`metahelpr::get_mas()`) that fits models to individual categories and tabulates the results. It may or may not work because I'm not that good at writing functions. You're welcome. This function takes the general form 
 
 ```{r eval = F}
-metahelpr::get_mas(tibble = name_of_your_tibble,
-                   predictor = name_of_the_categorical_variable,
-                   es = name_of_the_variable_containing_effect_sizes,
-                   var_es = name_of_the_variable_containing_effect_size_variances,
-                   es_id = name_of_the_variable_containing_effect_size_identifier, # optional
-                   study_id = name_of_the_variable_containing_cluster_identifier, # optional
-                   digits = number_of_decimal_places_to_use_in_table (default is 2),
-                   p_digits = number_of_decimal_places_to_use_for_p_values (default is 3),
+metahelpr::get_mas(tibble = name_your_tibble,
+                   predictor = name_of_moderator,
+                   es = variable_containing_effect_sizes,
+                   var_es = variable_containing_effect_size_variances,
+                   es_id = variable_containing_effect_size_identifier, # optional
+                   study_id = variable_containing_cluster_identifier, # optional
+                   digits = decimal_places_to_use_in_table # default is 2
+                   p_digits = decimal_places_for_p_values #default is 3
                    summary = TRUE or FALSE
 )
 ```
