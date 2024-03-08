@@ -354,10 +354,10 @@ Usually for a meta-analysis you would input the raw data into a CSV file. The da
 
 - **Each row represents information for an effect size and each column codes that information**: for example, Berntsen et al. (2003) in the first row contains information for a single effect size. The columns tell us things about that effect size such as that high disorganization is represented by a low score (`high_disorganization_is`), a memory questionnaire was used (`method`), memories were rated with a method that was not FOA (`foa`), the clinical group was PTSD (`clinical_group`), and the mean memory rating for the clinical group was 3.25 (`clinical_mean`) and 3.25 for controls (`control_mean`) and so on.
 - Studies can contribute multiple effect sizes. For example, Evans et al (2007) contributes two effect sizes one is based on a global FOA assessment of memories and the other is based on a detailed FOA measure (see the columns `foa_type`,  `foa` and `foa_gp`, which combines the two into a single variable).
-- Each study has a numeric ID variable (`study`)
+- Each study is uniquely identified by variable (`author` and `study`)
 - Each effect size (row) has a unique ID (`es_id`)
 - For most studies we have the mean, standard deviation and sample size (*n*) of the memory rating for the clinical group and controls (in the variables `clinical_mean`, `clinical_sd`, `clinical_n`, `control_mean`, `control_sd`, and `control_n`). This is the information we need to compute Cohen's $d$.
-- Sometimes studies don't include the information we need but report other information that can lead us to Cohen's $d$. For example, the paper might report Cohen's *d* directly, a *t*-statistic for the comparison of mean disorganization in clinical and control groups (`t` in our data), a *p*-value, or a correlation coefficient between PTSD symptoms (or group) and memory disorganization (`r` in our data). Note this kind of information for any study that reports it. 
+- Sometimes studies don't include the information we need but report other information that can lead us to Cohen's *d*. For example, the paper might report Cohen's *d* directly, a *t*-statistic for the comparison of mean disorganization in clinical and control groups (`t` in our data), a *p*-value, or a correlation coefficient between PTSD symptoms (or group) and memory disorganization (`r` in our data). Note this kind of information for any study that reports it. 
 
 ```{r, echo = F}
 brewin_2024 |> 
@@ -389,7 +389,7 @@ brewin_2024 |>
 ### `r user_visor()` Working with descriptive statistics [(2)]{.alt}
 
 
-Well start by using the raw data to calculate Cohen's *d* [@cohen_statistical_1988] using the `escalc()` function from `metafor` [@R-metafor; @metafor2010]. The `escalc()` function uses the information in the data to compute *d* and its variance and stores it in new columns/variables in your tibble. The raw data are stored in [brewin_2014]{.alt}.
+Well start by using the raw data to calculate Cohen's *d* [@cohen_statistical_1988] using the `escalc()` function from `metafor` [@R-metafor; @metafor2010]. The `escalc()` function uses the information in the data to compute *d* and its variance and stores it in new columns/variables in your tibble. The raw data are stored in [brewin_2024]{.alt}.
 
 #### `r robot()` Code example
 
@@ -423,7 +423,7 @@ metafor::escalc(measure = "SMD",
     - `m2i` = specify the variable containing the mean outcome for the control/comparison group (in this case `control_mean`)
     - `sd1i` = specify the variable containing the standard deviation of the outcome for the group of interest (in this case `clinical_sd`)
     - `sd2i` = specify the variable containing the standard deviation of the outcome for the control/comparison group (in this case `control_sd`)
-- As mentioned above, sometimes studies don't include the information we need but we can get Cohen's $d$ in a different way. For example, if the paper reports a *t*-statistic for the comparison of mean disorganization in clinical and control groups (in the column `t`) we can convert this to *d*. There are arguments for obtaining *d* by other means:
+- As mentioned above, sometimes studies don't include the information we need but we can get Cohen's *d* in a different way. For example, if the paper reports a *t*-statistic for the comparison of mean disorganization in clinical and control groups (in the column `t`) we can convert this to *d*. There are arguments for obtaining *d* by other means:
   - `ti` = (if you have one) specify a variable containing *t*-statistics that compare your target group to the control on the outcome of interest (in this case `t`)
   - `pi` = (if you have one) specify a variable containing a *p*-statistics for a comparison of your target group to the control on the outcome of interest (we don't have such a variable in these data). Be careful with this argument, see [www.metafor-project.org/doku.php/tips:assembling_data_smd](https://www.metafor-project.org/doku.php/tips:assembling_data_smd)
   - `di` = (if you have one) specify a variable containing *d* for a comparison of your target group to the control on the outcome of interest (we don't have such a variable in these data)
@@ -504,7 +504,7 @@ There are two main types of Pearson correlation coefficient that you might want 
 - Standard *r*: The standard Pearson correlation measures the association between two continuous variables. In this example, if a study reported the correlation between PTSD symptoms and memory disorganization then this is a standard correlation. 
 - Biserial *r*: The biserial correlation is the Pearson correlation between one continuous variable and one dichotomous variable (i.e. categorical variable made up of two categories). The dichotomous variable is assumed to have an underlying continuum. In this example, if a study reported the correlation between group membership (clinical or control) and memory disorganization then this is a biserial correlation. 
 
-Where the relevant descriptive information is available the formulae in @mathur_simple_2020 can be used to convert a standard Pearson correlation coefficient into $\hat{d}$.
+Where the relevant descriptive information is available the formula in @mathur_simple_2020 can be used to convert a standard Pearson correlation coefficient into $\hat{d}$.
 
 $$
 \begin{aligned}
@@ -519,7 +519,7 @@ This equation expresses the effect in terms of the change in the outcome variabl
 
 To make the resulting $\hat{d}$ comparable to studies for which $d$ represented mean differences in disorganization between PTSD and control groups, $\Delta$ for a given study was set to be the difference between the mean PTSD scores in PTSD and control groups.
 
-To apply this formula, the standard deviation of the PTSD measure ($s_x$) for the entire sample is required. Articles that did not report descriptive information for the PTSD measure for the entire sample did report it for PTSD and control subgroups allowing the whole sample variance ($s^2_\text{combined}$) to be estimated using [a standard formula](#appendix). Where this information was not available the formulae to convert a point biserial correlation can be used 
+To apply this formula, the standard deviation of the PTSD measure ($s_x$) for the entire sample is required. Articles that did not report descriptive information for the PTSD measure for the entire sample did report it for PTSD and control subgroups allowing the whole sample variance ($s^2_\text{combined}$) to be estimated using [a standard formula](#appendix). Where this information was not available the formula to convert a point biserial correlation can be used 
 
 $$
 \begin{aligned}
@@ -996,7 +996,7 @@ The output contains several statistics:
 </div>
 
 
-It also possible to fir the model using robust estimates of the variances and covariances by placing the model into `metafor::robust()`. This function takes the form
+It also possible to fit the model using robust estimates of the variances and covariances by placing the model into `metafor::robust()`. This function takes the form
 
 ```{r, eval = F}
 metafor::robust(my_model, cluster = variable_identifying_study)
@@ -1073,7 +1073,7 @@ To see what the different arguments do, use the code box to work through the fol
 5. The text below the *x*-axis (which says 'observed outcome') looks big. We can scale this separately using `cex.lab`. Try setting this to `cex.lab = 1`, but again try different values and note the effect.
 6. The *x*-label of 'observed outcome' isn't informative, so we can set this using `xlab = "Memory disorganization"` (again change the text in quotes to what you want it to be).
 7. The gap between the left and right columns and the plot in the middle can be reduced or expanded by setting the limits of the *x*-axis. The effect size data range from -1 to 2, so we could set limits of say -2.5 and 2.5 to see if this reduces the white space. Add the argument `xlim = c(-2.5, 2.5)` to do this (and again try different values and observe the effect when you execute the code).
-8. We can set the intervals on the *x*-axis using `at`. The effect size data range from -1 to 2, so an interval of 0.5 might be good. If we include `at = seq(-1, 2, 0.5)` this will create ticke between -1 and 2 at intervals of 0.5 (that is, -1, -0.5, 0, 0.5, 1, 1.5, and 2).
+8. We can set the intervals on the *x*-axis using `at`. The effect size data range from -1 to 2, so an interval of 0.5 might be good. If we include `at = seq(-1, 2, 0.5)` this will create ticks between -1 and 2 at intervals of 0.5 (that is, -1, -0.5, 0, 0.5, 1, 1.5, and 2).
 9. If we include `shade = TRUE` alternate lines of the plot will be shaded which can make it easier to see which data relates to which study.
 10. Finally, we can add a label at the bottom of the plot with `mlab`. This tutorial comes with a helper function (`forest_add_het()`) that adds heterogeneity statistics from a model to a forest plot. To add the heterogeneity statistics for our model ([brewin_ma]{.alt}) we need to include `mlab = metahelpr::forest_add_het(model = brewin_ma)`.
 
@@ -1243,10 +1243,10 @@ or equivalently
 mods = ~moderator_1 + moderator_2 + moderator_1:moderator_2
 ```
 
-and so on. We want to add in the variables `global_vs_detail`, `dis_vs_detail` and `org_vs_detail` so the `mods` argument will be
+and so on. We want to add in the variable `foa_gp` so the `mods` argument will be
 
 ```{r, eval = F}
-mods = ~global_vs_detail + dis_vs_detail + org_vs_detail
+mods = ~foa_gp
 ```
 
 

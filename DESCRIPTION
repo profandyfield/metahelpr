@@ -3,7 +3,7 @@ Type: Package
 Title: Helpers For Meta-Analysis
 Version: 0.1.0
 Date: 2024-03-08
-Authors@R: person(given = "Andy", family = "Field", middle = "P." email = "andyf@sussex.ac.uk", role = c("aut", "cre"))
+Authors@R: person(given = "Andy Peter", family = "Field", email = "andyf@sussex.ac.uk", role = c("aut", "cre"))
 Description: A learnr tutorial on conducting meta-analysis and helper functions for presenting results.
 License: GPL-3
 Encoding: UTF-8
