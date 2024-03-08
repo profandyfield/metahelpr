@@ -4,3 +4,6 @@
 .Ruserdata
 .DS_Store
 data-raw/
+inst/tutorials/*/*.html
+inst/tutorials/meta_d/meta_d_files/
+inst/tutorials/meta_r/meta_r_files/
