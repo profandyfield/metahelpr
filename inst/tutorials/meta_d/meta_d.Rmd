@@ -1206,7 +1206,7 @@ If we just place `foa_gp` into the model then this variable will automatically b
 <div class="tip">
   `r cat_space()` **Tip**
 
-  If you want to compare each category to a category that is not currently the first category, you can use `forcats::fct_relevel()` to move the reference category to be the first level/category of your factor. The default behaviour of this function is to move the specified category to be first. Fore xample, let's imagine we wanted to compare each category to "Not FOA (Organisation)" because we perceive this to be the worst way to measure memory disorganization. We could re-order the categories of `foa_gp` to achieve this:
+  If you want to compare each category to a category that is not currently the first category, you can use `forcats::fct_relevel()` to move the reference category to be the first level/category of your factor. The default behaviour of this function is to move the specified category to be first. For example, let's imagine we wanted to compare each category to "Not FOA (Organisation)" because we perceive this to be the worst way to measure memory disorganization. We could re-order the categories of `foa_gp` to achieve this:
 
 
 ```{r, eval = F, class.source = '.panel_alt'}
