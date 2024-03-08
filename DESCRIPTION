@@ -2,8 +2,8 @@ Package: metahelpr
 Type: Package
 Title: Helpers For Meta-Analysis
 Version: 0.1.0
-Authors@R: person("Andy", "Field", email = "andyf@sussex.ac.uk", role = c("aut", "cre"))
-Maintainer: Andy Field <andyf@sussex.ac.uk>
+Date: 2024-03-08
+Authors@R: person(given = "Andy", family = "Field", middle = "P." email = "andyf@sussex.ac.uk", role = c("aut", "cre"))
 Description: A learnr tutorial on conducting meta-analysis and helper functions for presenting results.
 License: GPL-3
 Encoding: UTF-8

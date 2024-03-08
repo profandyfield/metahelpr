@@ -10,6 +10,7 @@ output:
 runtime: shiny_prerendered
 description: "A tutorial on conducting a meta-analysis in R using the `metafor` package with effect size Cohen's *d*."
 bibliography: [meta_bib.bib, packages.bib]
+csl: ./css/apa.csl
 ---
 <html lang="en">
 
@@ -66,7 +67,7 @@ brewin_foa_agg <- brewin_es |>
 ```{r, eval = F, echo = F}
 # Create bib file for R packages
 here::here("inst/tutorials/meta_d/packages.bib") |>
-  knitr::write_bib(c('here', 'tidyverse', 'dplyr', 'DT', 'readr', 'forcats', 'tibble', 'knitr', 'broom', 'metafor'), file = _)
+  knitr::write_bib(c('here', 'tidyverse', 'dplyr', 'DT', 'readr', 'forcats', 'tibble', 'knitr', 'broom', 'metafor', 'metahelpr'), file = _)
 ```
 
 
@@ -123,6 +124,7 @@ This tutorial uses the following packages:
 * `here` [@R-here]
 * `knitr` [@R-knitr]
 * `metafor` [@R-metafor; @metafor2010]
+* `metahelpr` [@R-metahelpr]
 
 It also uses these `tidyverse` packages [@R-tidyverse; @tidyverse2019]: `dplyr` [@R-dplyr], `forcats` [@R-forcats], `ggplot2` [@wickhamGgplot2ElegantGraphics2016], and `readr` [@R-readr].
 
@@ -147,7 +149,7 @@ library(tidyverse)
 To work *outside of this tutorial* you need to download the following data files:
 
 * [brewin_2024.csv](https://milton-the-cat.rocks/data/csv/brewin_2024.csv)
-* [brewin_es.csv](https://www.discovr.rocks/csv/brewin_es.csv)
+* [brewin_es.csv](https://milton-the-cat.rocks/data/csv/brewin_es.csv)
 
 
 Set up an `r rstudio()` project in the way that I recommend in this tutorial:
