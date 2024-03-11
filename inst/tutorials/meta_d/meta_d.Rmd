@@ -274,7 +274,7 @@ $$
 
 #### The level 2 (within study level) model
 
-At level 2 (the middle level) we have the within-study model which acknowledges that each population effect size associated with effect size *j* within study *k* (\delta_{jk}) is itself made up of the effect size for the associated population, $\kappa_k$ and some sampling error (denoted as \zeta_{(2)jk} where the 2 tells us this is the error at level 2).
+At level 2 (the middle level) we have the within-study model which acknowledges that each population effect size associated with effect size *j* within study *k* ($\delta_{jk}$) is itself made up of the effect size for the associated population, $\kappa_k$ and some sampling error (denoted as $\zeta_{(2)jk}$ where the 2 tells us this is the error at level 2).
 
 $$
 \begin{aligned}
@@ -1081,100 +1081,139 @@ To see what the different arguments do, use the code box to work through the fol
 brewin_ma <- rma(yi = g, vi = v_g, data = brewin_agg)
 ```
 
-```{r forest, exercise = TRUE, exercise.lines = 10}
+```{r forest, exercise = TRUE, exercise.lines = 15}
 # step 1:
-forest(brewin_ma)
+metafor::forest(brewin_ma)
 ```
 
 ```{r forest-hint-1}
 # step 2:
-forest(brewin_ma,
-       slab = author)
+metafor::forest(brewin_ma,
+                slab = author)
 ```
 
 ```{r forest-hint-2}
 # step 3:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name")
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name")
 ```
 
 ```{r forest-hint-3}
 # step 4:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6)
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6)
 ```
 
 ```{r forest-hint-4}
 # step 5:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1)
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1)
 ```
 
 ```{r forest-hint-5}
 # step 6:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1, 
-       xlab = "Memory disorganization")
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization")
 ```
 
 ```{r forest-hint-6}
 # step 7:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1, 
-       xlab = "Memory disorganization",
-       xlim = c(-2.5, 2.5))
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization",
+                xlim = c(-2.5, 2.5))
 ```
 
 ```{r forest-hint-7}
 # step 8:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1, 
-       xlab = "Memory disorganization",
-       xlim = c(-2.5, 2.5),
-       at = seq(-1, 2, 0.5))
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization",
+                xlim = c(-2.5, 2.5),
+                at = seq(-1, 2, 0.5))
 ```
 
 ```{r forest-hint-8}
 # step 9:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1, 
-       xlab = "Memory disorganization",
-       xlim = c(-2.5, 2.5),
-       at = seq(-1, 2, 0.5),
-       shade = TRUE)
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization",
+                xlim = c(-2.5, 2.5),
+                at = seq(-1, 2, 0.5),
+                shade = TRUE)
 ```
 
 ```{r forest-hint-9}
 # step 10:
-forest(brewin_ma,
-       slab = author,
-       header = "Study name",
-       cex = 0.6,
-       cex.lab = 1, 
-       xlab = "Memory disorganization",
-       xlim = c(-2.5, 2.5),
-       at = seq(-1, 2, 0.5),
-       shade = TRUE,
-       mlab = metahelpr::forest_add_het(model = brewin_ma))
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization",
+                xlim = c(-2.5, 2.5),
+                at = seq(-1, 2, 0.5),
+                shade = TRUE,
+                mlab = metahelpr::forest_add_het(model = brewin_ma))
 ```
+       
+       
+<div class="tip">
+  `r cat_space()` **Tip: Saving plots**
+
+If you are working in quarto your forest plots will be printed into your output file (html, PDF or Word). However, it is often useful to save the plot as an image file. You can do this manually in `r rstudio()`, but ideally you'd use code to make the process reproducible. We can save images using a series of functions that work in the same way and differ only in the format of the image they save (the clue to the format is in the name of the function): `png()`, `bmp()`, `jpeg()`, `tiff()` and `pdf()`. All of these functions have the same usage (I'll use `png()` in the example code but this works with the other functions:
+
+```{r, eval = F, class.source = '.panel_alt'}
+png(filename = "filename_for_plot.png", res = 300, width = 2000, height = 3000, units = "px")
+# ... code to produce my plot ...
+dev.off()
+```
+
+So, you initiate the image device (in this case `png()`) and within it you specify:
+
+- `filename`: The filename you want to use. Obviously the file extension should match the function. So for `png()` the file extension should be `.png`, for `pdf()` it should be `.pdf` and so on. If you are working within an RStudio project the file will be saved in the main project directory but you can save it in a subfolder using the dot syntax. For example, if you have a folder called `images` you could save your image there with `filename = "./images/filename_for_plot.png`. You can also use `here()` to help you navigate to the folder you want (`filename = here("images/filename_for_plot.png")`.
+- `res`: This sets the [resolution](https://en.wikipedia.org/wiki/Image_resolution) of the image in pixels per inch (ppi). For anything that might be printed 300 PPI is a sensible value although you could go lower for images you only intend to go online.
+- `width` and `height`: are the width and height of the saved image in pixels.
+- `units`: are the units of measurement. By default this is pixels, but you can change it to ["cm"]{.alt} or ["in"]{.alt} for centimetres and inches. If you change the units then any values specified in `width` and `height` will be in those units. For example, in the code above if we set `units = "cm"` then we'd be asking to save an image that was 2000 cm wide by 3000 cm tall (i.e. enormous!). So, if you change the units, set the `width` and `height` accordingly.
+
+Having initiated the device, you include the code for your plot which will be 'printed' to the device (in this case it will be 'printed' to a file that is a PNG). Having done that we switch the device off with `dev.off()`. 
+
+Therefore, we could save the forest plot we have just created using this code (incidentally, this won't work from within a tutorial but try it out in a quarto document):
+
+```{r, eval = F, class.source = '.panel_alt'}
+png(filename = "my_forest_plot.png", res = 300, width = 2000, height = 3000, units = "px")
+metafor::forest(brewin_ma,
+                slab = author,
+                header = "Study name",
+                cex = 0.6,
+                cex.lab = 1, 
+                xlab = "Memory disorganization",
+                xlim = c(-2.5, 2.5),
+                at = seq(-1, 2, 0.5),
+                shade = TRUE,
+                mlab = metahelpr::forest_add_het(model = brewin_ma))
+dev.off()
+```
+</div>       
        
 ## `r user_visor()` Moderators (meta-regression) [(2)]{.alt} {#mods}
 
@@ -1201,7 +1240,24 @@ d_{jk} &= \theta + \beta_1(\text{FOA}_\text{Detailed} \text{ vs. FOA}_\text{Glob
 \end{aligned}
 $$
 
-If we just place `foa_gp` into the model then this variable will automatically be converted to dummy variables that compare each category to the first. In fact this is what we want. 
+If we place `foa_gp` into the model then `r rproj()` will convert this variable to 3 dummy variables that compare each category to the first. Let's check which category is the first.
+
+#### `r robot()` Code example
+
+Use the code box to check the order of the factor levels of the variable `foa_gp`
+
+#### `r alien()` Alien coding challenge
+
+```{r fct_levels, exercise = TRUE, exercise.lines = 4}
+
+```
+
+```{r fct_levels-solution}
+levels(brewin_es$foa_gp)
+```
+
+
+You should find that the groups are currently ordered: FOA (detailed), FOA (global),  not FOA (disorganisation), not FOA (organisation). In fact this is what we want: we want everything to be compared to the first category, which is the detailed FOA methodology.
 
 <div class="tip">
   `r cat_space()` **Tip**
@@ -1315,7 +1371,7 @@ brewin_rob
 ```
 
 
-```{r}
+```{r, echo = F}
 brewin_mod <- rma.mv(yi = g,
                      V = v_g,
                      mods = ~foa_gp,
@@ -1329,12 +1385,43 @@ brewin_rob <- robust(brewin_mod, cluster = author)
 
 The classification of effect sizes was dummy coded such that each category of effect size was compared to ones from FOA studies that quantified measures that used detailed coding. In the model including these dummy variables the between study variability was $\hat{\sigma}_b^2$ = `r metafor::fmtx(brewin_rob$sigma2[1], 3)` and the within study variability was $\hat{\sigma}_w^2$ = `r metafor::fmtx(brewin_rob$sigma2[2], 3)`. The observed heterogeneity was significantly different from zero, `r metahelpr::report_het(brewin_rob)`.
 
-The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. The parameter estimates indicated that compared to effect sizes relating to FOA studies that use detailed coding, effect sizes were (1) significantly larger in FOA studies that use global ratings, `r metahelpr::report_pars(brewin_rob, row = 2)`; (2) significantly smaller in not FOA studies that measured organisation, `r metahelpr::report_pars(brewin_rob, row = 3)`; and (3) not significantly different to not FOA studies that measured disorganisation, `r metahelpr::report_pars(brewin_rob, row = 4)`.
+The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. The parameter estimates (Table 2) indicated that compared to effect sizes relating to FOA studies that use detailed coding, effect sizes were (1) significantly larger in FOA studies that use global ratings, `r metahelpr::report_pars(brewin_rob, row = 2)`; (2) significantly smaller in not FOA studies that measured organisation, `r metahelpr::report_pars(brewin_rob, row = 3)`; and (3) not significantly different to not FOA studies that measured disorganisation, `r metahelpr::report_pars(brewin_rob, row = 4)`.
+
+</div>
+
+```{r, echo = F}
+metahelpr::report_par_tbl(brewin_rob, pred_labels = c("Intercept", "FOA global vs. FOA detailed", "Not FOA (disorganisation) vs. FOA detailed", "Not FOA (organisation) vs. FOA detailed")) |> 
+  knitr::kable(caption = "Table 2: Parameter estimates for the method of measuring memory disorganisation",
+               col.names = c("Predictor", "$\\hat{\\beta}$", "95% CI%", "$t$", "$p$"), 
+               escape = FALSE)
+```
+
+
+<div class="tip">
+  `r cat_space()` **Tip**
+
+Table 2 takes advantage of `metahelpr::report_par_tbl()`, which is a helper function for reporting parameter estimates in a  nicely formatted table. I used the following code:
+
+```{r, eval = F, class.source = '.panel_alt'}
+metahelpr::report_par_tbl(brewin_rob,
+                          pred_labels = c("Intercept", "FOA global vs. FOA detailed", "Not FOA (disorganisation) vs. FOA detailed", "Not FOA (organisation) vs. FOA detailed")) |> 
+  knitr::kable(caption = "Table 2: Parameter estimates for the method of measuring memory disorganisation",
+               col.names = c("Predictor", "$\\hat{\\beta}$", "95% CI%", "$t$", "$p$"), 
+               escape = FALSE)
+```
+
+Note that:
+
+- Within `metahelpr::report_par_tbl()` I specify the meta-analysis model that I want to report and also supply the row labels for each predictor.
+- Within `knitr::kable()` I supply a caption and column labels. The column labels use LaTeX to include mathematical symbols. For this to render properly we need two things:
+  - LaTeX syntax that usually uses a forward slash (e.g. `\hat{}` and `\beta`) we need to use a double slash
+  - Within `kable()` we need to include `escape = FALSE`.
+
 </div>
 
 ### `r user_visor()` Subgroup analysis [(2)]{.alt} {#subgroup}
 
-The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. It is common when this is true for a categorical moderator to run individual meta-analysis within each category of the moderator. In this case this would mean running four meta-analyses, one for each category of memory coding. We can do this using the `subgroup` argument of the `rma()` and `rma.mv()` functions. We use this argument by assigning a logical argument to it. For example, to fit a meta-analysis only using the effect sizes that used detailed FOA methodology, we would include:
+The overall moderation effect was significant, `r metahelpr::report_mod(brewin_rob)`. It is common when this is true for a categorical moderator to run individual meta-analysis within each category of the moderator. Given that significance depends on power it is arguably informative to do this anyway. In this case this would mean running four meta-analyses, one for each category of memory coding. We can do this using the `subgroup` argument of the `rma()` and `rma.mv()` functions. We use this argument by assigning a logical argument to it. For example, to fit a meta-analysis only using the effect sizes that used detailed FOA methodology, we would include:
 
 ```{r, eval = F}
 subset = (foa_grp == "FOA (Detailed)")
@@ -1372,14 +1459,14 @@ foa_detailed
 Obviously it's fairly tedious fitting separate models, which is why I have written a helper function (`metahelpr::get_mas()`) that fits models to individual categories and tabulates the results. It may or may not work because I'm not that good at writing functions. You're welcome. This function takes the general form 
 
 ```{r eval = F}
-metahelpr::get_mas(tibble = name_your_tibble,
-                   predictor = name_of_moderator,
+metahelpr::get_mas(tibble = name_of_your_tibble,
+                   predictor = name_of_the_categorical_variable,
                    es = variable_containing_effect_sizes,
                    var_es = variable_containing_effect_size_variances,
-                   es_id = variable_containing_effect_size_identifier, # optional
-                   study_id = variable_containing_cluster_identifier, # optional
-                   digits = decimal_places_to_use_in_table # default is 2
-                   p_digits = decimal_places_for_p_values #default is 3
+                   es_id = effect_size_identifier, # optional
+                   study_id = cluster_identifier, # optional
+                   digits = decimal_places_to_use_in_table, # (default is 2)
+                   p_digits = decimal_places_to_use_for_p_values, #default is 3
                    summary = TRUE or FALSE
 )
 ```
@@ -1412,10 +1499,18 @@ mod_tbl
 <div class="tip">
   `r cat_space()` **Tip**
 
-  If working in `quarto`, pipe the output of `get_mas` into `knitr::kable` to get a nicely formatted table and you can add styling and captions in the usual way.
+  If working in `quarto`, pipe the output of `get_mas()` into `knitr::kable()` to get a nicely formatted table and you can add styling and captions in the usual way.
 
-  ```{r, eval = F, class.source = '.panel_alt'}
+```{r, eval = F, class.source = '.panel_alt'}
 mod_tbl |> knitr::kable()
+```
+
+In quarto you can add column names within `kable()`. For example, the code below uses LaTeX syntax to label the columns with the appropriate mathematical notation (this will work in quarto but in this tutorial).
+
+```{r, eval = F, class.source = '.panel_alt'}
+knitr::kable(mod_tbl,
+             col.names = c("Outcome", "$k$", "$\\sigma_b^2$", "$\\sigma_w^2$", "$Q$", "$df$", "$p_q$", "\\hat{\\theta}", "95% CI", "$z$", "$p_z$"),
+             escape = FALSE)
 ```
 </div>
 
@@ -1440,12 +1535,12 @@ metahelpr::forest_subgroups(tibble = brewin_foa_agg,
                  shade = T)
 ```
 
-The first four arguments require you to specify the data (`tibble = brewin_es`), the variable containing the effect sizes (`es = g`), the variable containing the effect size variances (`var_es = v_g`), the variable that you want to use to group effect sizes (`groups = foa_gp`) and the variable you want to use to label the studies (`slab = author`). All the other options allow you to feed values into the `forest()` function so see the section on [forest plots](#forest) for an explanation.
+The first four arguments require you to specify the data (we're using the data that aggregates effect sizes by study and FOA group, so. `tibble = brewin_foa_agg`), the variable containing the effect sizes (`es = g`), the variable containing the effect size variances (`var_es = v_g`), the variable that you want to use to group effect sizes (`groups = foa_gp`) and the variable you want to use to label the studies (`slab = author`). All the other options allow you to feed values into the `forest()` function so see the section on [forest plots](#forest) for an explanation.
 
 
 #### `r alien()` Alien coding challenge
 
-The code below and play about with the arguments from `header` to `shade` to style the plot. Note I've used the data in `brewin_foa_agg` so that each study contributes a maximum of one effect size to each memory coding group on the plot. For example, Jones et al. (2007) contributes 9 effect sizes to *FOA detailed* and 3 to *FOA global* but in `brewin_foa_agg` these have been averaged so that we plot a single effect for each of those categories for Jones et al. (2007).
+Run the code below and play about with the arguments from `header` to `shade` to style the plot. Note I've used the data in `brewin_foa_agg` so that each study contributes a maximum of one effect size to each memory coding group on the plot. For example, Jones et al. (2007) contributes 9 effect sizes to *FOA detailed* and 3 to *FOA global* but in `brewin_foa_agg` these have been averaged so that we plot a single effect for each of those categories for Jones et al. (2007).
 
 Change the data to `brewin_es` (where effect sizes have not been aggregated) and see the difference.
 
@@ -1464,6 +1559,11 @@ metahelpr::forest_subgroups(tibble = brewin_foa_agg,
                  shade = TRUE)
 ```
 
+In the code box below change produce the same plot but for the data in `brewin_es` (where effect sizes have not been aggregated) and see the difference.
+
+```{r sub_forest2, exercise = TRUE, exercise.lines = 15}
+
+```
 
 ## `r user_visor()` Writing up [(2)]{.alt}
 
