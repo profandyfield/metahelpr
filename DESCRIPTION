@@ -1,7 +1,7 @@
 Package: metahelpr
 Type: Package
 Title: Helpers For Meta-Analysis
-Version: 0.1.1
+Version: 0.1.2
 Date: 2024-03-11
 Authors@R: person(given = "Andy Peter", family = "Field", email = "andyf@sussex.ac.uk", role = c("aut", "cre"))
 Description: A learnr tutorial on conducting meta-analysis and helper functions for presenting results.
@@ -11,12 +11,12 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
 Depends:
-  R (>= 4.2.0),
-  learnr (>= 0.11.5)
+  R (>= 4.2.0)
 Imports:
     broom,
     dplyr,
     ggplot2,
+    learnr (>= 0.11.5),
     metafor,
     purrr,
     tibble,
