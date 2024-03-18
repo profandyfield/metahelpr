@@ -15,7 +15,10 @@ Depends:
 Imports:
     broom,
     dplyr,
+    DT,
     ggplot2,
+    htmltools,
+    knitr,
     learnr (>= 0.11.5),
     metafor,
     purrr,
