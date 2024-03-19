@@ -2,14 +2,28 @@
 % Please edit documentation in R/meta_helpers.R
 \name{get_pbm}
 \alias{get_pbm}
-\title{Publication bias weight models for sub-categories}
+\title{Publication bias weight models}
 \usage{
-get_pbm(tibble, predictor, digits = 2, p_digits = 3, a, moderate, severe)
+get_pbm(
+  tibble,
+  predictor,
+  es,
+  var_es,
+  digits = 2,
+  p_digits = 3,
+  a,
+  moderate,
+  severe
+)
 }
 \arguments{
 \item{tibble}{A tibble containing the raw data}
 
-\item{predictor}{The name of the categorical predictor for which you want individual weight models}
+\item{predictor}{The name of the categorical predictor for which you want individual weight models (optional)}
+
+\item{es}{Name of the variable containing the effect sizes}
+
+\item{var_es}{Name of the variable containing the variance estimate of the effect sizes}
 
 \item{digits}{number of decimal places to print in the output}
 
@@ -27,7 +41,8 @@ original effect size estimate (\eqn{\hat{\theta}}) the estimate adjusted for bia
 This tibble can be printed using \code{kable()} in quarto.
 }
 \description{
-\code{get_pbm()} is a helper function to fit and collate publication bias models across categories of a predictor variable. It is assumed that you will supply
-two vectors of values one representing moderate publication bias and the other representing severe.
+\code{get_pbm()} is a helper function to fit and collate publication bias models. It is assumed that you will supply
+two vectors of values one representing moderate publication bias and the other representing severe. If a categorical variable is
+supplied to \code{predictor} then the function will fit and collate publication bias models across categories of that variable.
 For more information see \code{\link[metafor:selmodel]{metafor::selmodel()}}
 }

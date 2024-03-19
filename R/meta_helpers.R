@@ -489,6 +489,10 @@ var_d_from_r <- function(n, r, d, var = T){
   }
 }
 
+#' Organises data for bubble plot
+#'
+#' @noRd
+
 
 get_bubble_data <- function(model){
   data <- model |> metafor::regplot()
@@ -603,15 +607,18 @@ collate_pub_bias <- function(model, pb_mod, pb_sev, digits = 3, p_digits = 3){
 
 
 
-#' Publication bias weight models for sub-categories
+#' Publication bias weight models
 #'
 #' @description
-#' `get_pbm()` is a helper function to fit and collate publication bias models across categories of a predictor variable. It is assumed that you will supply
-#' two vectors of values one representing moderate publication bias and the other representing severe.
+#' `get_pbm()` is a helper function to fit and collate publication bias models. It is assumed that you will supply
+#' two vectors of values one representing moderate publication bias and the other representing severe. If a categorical variable is
+#' supplied to `predictor` then the function will fit and collate publication bias models across categories of that variable.
 #' For more information see [`metafor::selmodel()`]
 #'
 #' @param tibble A tibble containing the raw data
-#' @param predictor  The name of the categorical predictor for which you want individual weight models
+#' @param es Name of the variable containing the effect sizes
+#' @param var_es Name of the variable containing the variance estimate of the effect sizes
+#' @param predictor  The name of the categorical predictor for which you want individual weight models (optional)
 #' @param digits  number of decimal places to print in the output
 #' @param p_digits  number of decimal places for *p*-values
 #' @param a numeric vector of one or more values that will be used to set the `steps` argument in `metafor::selmodel()`
@@ -624,12 +631,21 @@ collate_pub_bias <- function(model, pb_mod, pb_sev, digits = 3, p_digits = 3){
 #' @export
 
 
+get_pbm <- function(tibble, predictor, es, var_es, digits = 2, p_digits = 3, a, moderate, severe){
+  if(missing(es)){print("You must supply a variable name to es")}
+  if(missing(var_es)){print("You must supply a variable name to var_es")}
 
-get_pbm <- function(tibble, predictor, digits = 2, p_digits = 3, a, moderate, severe){
-  mas <- rename_es_cols(tibble, {{es}}, {{var_es}})  |>
-    dplyr::arrange({{predictor}}) |>
-    dplyr::group_by({{predictor}})  |>
-    tidyr::nest()  |>
+
+  if(missing(predictor)){
+    mas <- rename_es_cols(tibble, {{es}}, {{var_es}})
+  } else {
+    mas <- rename_es_cols(tibble, {{es}}, {{var_es}})  |>
+      dplyr::arrange({{predictor}}) |>
+      dplyr::group_by({{predictor}})
+  }
+
+  mas <- mas  |>
+    tidyr::nest() |>
     dplyr::mutate(
       model = purrr::map(.x = data,
                          .f = \(es_tib) metafor::rma(yi = es, vi = var_es, data = es_tib)),
@@ -640,7 +656,17 @@ get_pbm <- function(tibble, predictor, digits = 2, p_digits = 3, a, moderate, se
       coefs = purrr::pmap(.l = list(model, pb_mod, pb_sev),
                           .f = \(model, pb_mod, pb_sev) collate_pub_bias(model, pb_mod, pb_sev, digits = digits, p_digits = p_digits)))
 
-  mas
+  if(missing(predictor)){
+    mas <- mas  |>
+      dplyr::select(c(coefs))
+  } else {
+    mas <- mas  |>
+      dplyr::select(c({{predictor}}, coefs))
+  }
+
+  mas |>
+    tidyr::unnest(coefs) |>
+    dplyr::ungroup()
 }
 
 

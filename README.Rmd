@@ -54,7 +54,7 @@ The package contains some (probably badly written and easily breakable) helper f
 - `forest_subgroups`: plots a forest plot where effect sizes are split by subcategories of a factor. 
 -   `get_mas`: Fit individual meta-analyses for each level of a categorical predictor and (optionally) collate the results into a tabulated form for printing in a quarto document.
 -   `get_mod_mas`: does the same thing as `get_mas()` but allows the user to specify a moderator/predictor within the individual meta-analyses. So, it fits individual meta-analyses models with a moderator specified using the `rma.mv()` function from the `metafor` package within each level of a categorical variable. Optionally, the results can be collated into a tabulated form for printing in a quarto document.
--   `get_pbm`: fits and collates publication bias models across categories of a predictor variable. It is assumed that you will supply two vectors of values one representing moderate publication bias and the other representing severe.
+-   `get_pbm`: fits and collates publication bias models (optionally across categories of a predictor variable). It is assumed that you will supply two vectors of values one representing moderate publication bias and the other representing severe.
 -   `plot_bubble`: create a bubble plot (using `ggplot2`) based on a `regtest()` object.
 -   `pooled_var`: computes a full sample variance estimate based on means and variances from two subgroups.
 -   `regtest_tbl`: puts the results of `metafor::regtest()` into a tibble for reporting.

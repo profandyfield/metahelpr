@@ -81,7 +81,7 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Andy Field \email{andyf@sussex.ac.uk}
+\strong{Maintainer}: Andy Peter Field \email{andyf@sussex.ac.uk}
 
 }
 \keyword{internal}

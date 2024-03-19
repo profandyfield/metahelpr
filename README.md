@@ -69,10 +69,10 @@ helper functions that I often use when I conduct meta-analysis.
   using the `rma.mv()` function from the `metafor` package within each
   level of a categorical variable. Optionally, the results can be
   collated into a tabulated form for printing in a quarto document.
-- `get_pbm`: fits and collates publication bias models across categories
-  of a predictor variable. It is assumed that you will supply two
-  vectors of values one representing moderate publication bias and the
-  other representing severe.
+- `get_pbm`: fits and collates publication bias models (optionally
+  across categories of a predictor variable). It is assumed that you
+  will supply two vectors of values one representing moderate
+  publication bias and the other representing severe.
 - `plot_bubble`: create a bubble plot (using `ggplot2`) based on a
   `regtest()` object.
 - `pooled_var`: computes a full sample variance estimate based on means
