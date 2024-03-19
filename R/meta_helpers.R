@@ -618,6 +618,7 @@ collate_pub_bias <- function(model, pb_mod, pb_sev, digits = 3, p_digits = 3){
 #' @param tibble A tibble containing the raw data
 #' @param es Name of the variable containing the effect sizes
 #' @param var_es Name of the variable containing the variance estimate of the effect sizes
+#' @param alternative character string to specify the sidedness of the hypothesis when testing the observed outcomes. Possible options are "greater" (the default), "less", or "two.sided". Can be abbreviated.
 #' @param predictor  The name of the categorical predictor for which you want individual weight models (optional)
 #' @param digits  number of decimal places to print in the output
 #' @param p_digits  number of decimal places for *p*-values
@@ -631,15 +632,14 @@ collate_pub_bias <- function(model, pb_mod, pb_sev, digits = 3, p_digits = 3){
 #' @export
 
 
-get_pbm <- function(tibble, predictor, es, var_es, digits = 2, p_digits = 3, a, moderate, severe){
+get_pbm <- function(tibble, predictor, es, var_es, alternative, digits = 2, p_digits = 3, a, moderate, severe){
   if(missing(es)){print("You must supply a variable name to es")}
   if(missing(var_es)){print("You must supply a variable name to var_es")}
 
+  mas <- rename_es_cols(tibble, {{es}}, {{var_es}})
 
-  if(missing(predictor)){
-    mas <- rename_es_cols(tibble, {{es}}, {{var_es}})
-  } else {
-    mas <- rename_es_cols(tibble, {{es}}, {{var_es}})  |>
+  if(!missing(predictor)){
+    mas <- mas  |>
       dplyr::arrange({{predictor}}) |>
       dplyr::group_by({{predictor}})
   }
@@ -650,9 +650,9 @@ get_pbm <- function(tibble, predictor, es, var_es, digits = 2, p_digits = 3, a, 
       model = purrr::map(.x = data,
                          .f = \(es_tib) metafor::rma(yi = es, vi = var_es, data = es_tib)),
       pb_mod = purrr::map(.x = model,
-                          .f = \(m) selmodel(m, type = "stepfun", steps = a, delta = moderate)),
+                          .f = \(m) selmodel(m, type = "stepfun", steps = a, delta = moderate, alternative = alternative)),
       pb_sev = purrr::map(.x = model,
-                          .f = \(m) selmodel(m, type = "stepfun", steps = a, delta = severe)),
+                          .f = \(m) selmodel(m, type = "stepfun", steps = a, delta = severe, alternative = alternative)),
       coefs = purrr::pmap(.l = list(model, pb_mod, pb_sev),
                           .f = \(model, pb_mod, pb_sev) collate_pub_bias(model, pb_mod, pb_sev, digits = digits, p_digits = p_digits)))
 

@@ -9,6 +9,7 @@ get_pbm(
   predictor,
   es,
   var_es,
+  alternative,
   digits = 2,
   p_digits = 3,
   a,
@@ -24,6 +25,8 @@ get_pbm(
 \item{es}{Name of the variable containing the effect sizes}
 
 \item{var_es}{Name of the variable containing the variance estimate of the effect sizes}
+
+\item{alternative}{character string to specify the sidedness of the hypothesis when testing the observed outcomes. Possible options are "greater" (the default), "less", or "two.sided". Can be abbreviated.}
 
 \item{digits}{number of decimal places to print in the output}
 
