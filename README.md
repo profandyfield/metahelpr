@@ -6,6 +6,8 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
+<img src="hex_metahelpr.png" style="width:20.0%" />
+
 The goal of `metahelpr` is to offer tutorials and helper functions for
 conducting meta-analysis using the `metafor` package (Viechtbauer 2010).
 The package contains some helper functions that I often use when I
@@ -96,7 +98,8 @@ helper functions that I often use when I conduct meta-analysis.
 
 ## References
 
-<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="refs" class="references csl-bib-body hanging-indent"
+entry-spacing="0">
 
 <div id="ref-brewin_meta-analysis_2024" class="csl-entry">
 

@@ -20,6 +20,9 @@ knitr::opts_chunk$set(
 
 <!-- badges: end -->
 
+
+![](hex_metahelpr.png){width="20%"}
+
 The goal of `metahelpr` is to offer tutorials and helper functions for conducting meta-analysis using the `metafor` package [@metafor]. The package contains some helper functions that I often use when I conduct meta-analysis, but I offer no guarantees that they'll actually work for you because I'm not a particularly experienced programmer. Feel free to contribute and make them better and more robust.
 
 ## Installation
